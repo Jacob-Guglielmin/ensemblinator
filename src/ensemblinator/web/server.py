@@ -10,8 +10,11 @@ def discover_blueprints(api_dir: Path):
             continue
         if any(part in common.SKIPPED_DISCOVERY_DIRS for part in path.relative_to(api_dir).parts):
             continue
-        spec = importlib.util.spec_from_file_location(f"api_endpoints.{path.stem}", path)
+        module_name = f"api_endpoints.{str(path.relative_to(api_dir).with_suffix("")).replace("/", ".")}"
+        spec = importlib.util.spec_from_file_location(module_name, path)
+        assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)
+        # TODO this could crash on broken user code
         spec.loader.exec_module(module)
 
         bp = getattr(module, "bp", None)
