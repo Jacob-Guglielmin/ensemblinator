@@ -11,4 +11,4 @@ Job orchestrator and API manager
 
 To run against a test config:
 
-    ensemblinator --config test-configs/local.toml
+    ensemblinator --config examples/ensemblinator.toml

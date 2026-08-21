@@ -10,7 +10,7 @@ import os
 def wrapped_job(executable: Path, meta: JobMeta):
     exit_code, output, duration = _execute_subprocess(meta.job_id, executable, meta.timeout)
 
-    print(exit_code, duration, meta)
+    print(exit_code, output, duration, meta)
 
     notifier.get().notify_job_complete(meta, exit_code, output, duration)
 

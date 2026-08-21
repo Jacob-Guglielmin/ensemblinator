@@ -23,11 +23,12 @@ def main():
     _run()
 
 def _parse_args():
-    parser = argparse.ArgumentParser(prog="ensemblinator")
+    parser = argparse.ArgumentParser(prog="ensemblinator", add_help=False)
     parser.add_argument("--config", type=Path, required=True, help="path to ensemblinator.toml")
     return parser.parse_args()
 
 def _load_config(config_path: Path):
+    print("Loading configuration...")
     with open(config_path, "rb") as f:
         config = tomllib.load(f)
 
@@ -41,6 +42,7 @@ def _load_config(config_path: Path):
     return config
 
 def _initialize(config: dict):
+    print("Initializing...")
     global _scheduler
     global _api
 
@@ -54,6 +56,7 @@ def _initialize(config: dict):
     signal.signal(signal.SIGTERM, _stop_app)
 
 def _run():
+    print("Starting services...")
     global _scheduler
     global _api
 
