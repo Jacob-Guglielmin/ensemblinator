@@ -1,9 +1,7 @@
 from ensemblinator.common.persistence import internal_state
 from ensemblinator.scheduler.meta_parser import JobMeta
 
-import tomllib
 import json
-from pathlib import Path
 import requests
 import time
 
@@ -13,19 +11,14 @@ MESSAGE_BUDGET = 1950
 ATTACHMENT_BUDGET = int(9.5 * 1024 * 1024)
 
 class Notifier:
-    def __init__(self, config_dir: Path):
-        config_path = config_dir / "notify.toml"
-        if not config_path.exists():
-            raise FileNotFoundError(f"Missing notification config file: {config_path}")
-
-        with open(config_path, "rb") as f:
-            self._config = tomllib.load(f)
+    def __init__(self, config: dict):
+        self._config = config
 
         webhooks = self._config.get("webhooks", {})
         if "errors" not in webhooks:
-            raise ValueError(f"'errors' webhook is always required in notification config file: {config_path}")
+            raise ValueError(f"'errors' webhook is always required in notify config in ensemblinator.toml")
         if "guild_id" not in self._config:
-            raise ValueError(f"'guild_id' is always required in notification config file: {config_path}")
+            raise ValueError(f"'guild_id' is always required in notify config in ensemblinator.toml")
 
     def _post(
         self,
@@ -68,7 +61,7 @@ class Notifier:
 
     def _report_failure(self, message: str):
         print(f"warning: {message}")
-        self._post_errors(f"Notification failure: {message}\n\n@everyone")
+        self._post_errors(f"[ensemblinator]: notification failure: {message}\n\n@everyone")
 
     def _build_log_attachment(self, content: str) -> bytes:
         data = content.encode()

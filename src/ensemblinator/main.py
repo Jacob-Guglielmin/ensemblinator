@@ -32,7 +32,7 @@ def _load_config(config_path: Path):
         config = tomllib.load(f)
 
     config_dir = config_path.parent
-    for key in ("jobs_dir", "api_dir", "config_dir"):
+    for key in ("jobs_dir", "api_dir"):
         p = Path(config["paths"][key])
         if not p.is_absolute():
             p = (config_dir / p)
@@ -44,12 +44,12 @@ def _initialize(config: dict):
     global _scheduler
     global _api
 
-    notifier.init_notifier(notifier.Notifier(config["config_dir"]))
+    notifier.init_notifier(notifier.Notifier(config["notify"]))
 
-    _scheduler = Scheduler(config["jobs_dir"])
+    _scheduler = Scheduler(config["paths"]["jobs_dir"])
     _scheduler.register_jobs()
 
-    _api = API(config["api_dir"], host="0.0.0.0", port=5000, workers=1)
+    _api = API(config["paths"]["api_dir"], host="0.0.0.0", port=5000, workers=1)
 
     signal.signal(signal.SIGTERM, _stop_app)
 
