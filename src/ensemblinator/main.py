@@ -1,10 +1,9 @@
-import web
-from scheduler import Scheduler
-from common.notifier import Notifier, init_notifier
+from ensemblinator.web import manager
+from ensemblinator.scheduler.scheduler import Scheduler
+from ensemblinator.common.notifier import notifier
 
 import signal
 from pathlib import Path
-import signal
 import sys
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -13,10 +12,10 @@ API_DIR = ROOT_DIR / "api"
 JOBS_DIR = ROOT_DIR / "jobs"
 
 def start_app():
-    init_notifier(Notifier(CONFIG_DIR))
+    notifier.init_notifier(notifier.Notifier(CONFIG_DIR))
 
     scheduler = Scheduler(JOBS_DIR)
-    web.start_web(API_DIR)
+    manager.start_web(API_DIR)
 
     signal.signal(signal.SIGTERM, stop_app)
     signal.signal(signal.SIGINT, stop_app)
@@ -26,7 +25,7 @@ def start_app():
     except KeyboardInterrupt:
         print("\rKeyboard interrupt: stopping...")
 
-def stop_app():
+def stop_app(signum, frame):
     sys.exit(0)
 
 if __name__ == "__main__":

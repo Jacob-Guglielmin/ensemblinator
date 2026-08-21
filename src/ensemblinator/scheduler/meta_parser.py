@@ -68,19 +68,21 @@ META_LINE = _build_meta_regex()
 
 def _parse_positive_float(spec_name: str, v: str) -> float:
     try:
-        v = float(v)
-        if v < 0:
+        float_v = float(v)
+        if float_v < 0:
             raise MetaParseError(f"job's @{spec_name} directive must be positive")
     except ValueError:
         raise MetaParseError(f"job's @{spec_name} directive must be a positive number")
+    return float_v
     
 def _parse_positive_int(spec_name: str, v: str) -> int:
     try:
-        v = int(v)
-        if v < 0:
+        int_v = int(v)
+        if int_v < 0:
             raise MetaParseError(f"job's @{spec_name} directive must be positive")
     except ValueError:
         raise MetaParseError(f"job's @{spec_name} directive must be a positive integer")
+    return int_v
 
 def _parse_channel(spec_name: str, v: str) -> str:
     if not notifier.get().channel_exists(v):
@@ -149,7 +151,7 @@ def parse_job_header(path: Path, jobs_dir: Path) -> JobMeta | None:
 
     return _interpret_meta(path.relative_to(jobs_dir).as_posix(), meta)
 
-def _interpret_directives(raw_meta: dict) -> dict[str, Any]:
+def _interpret_directives(raw_meta: dict[str, str | list[str]]) -> dict[str, Any]:
     by_name = {d.name: d for d in DIRECTIVES}
     passed = set(raw_meta.keys())
 
@@ -174,17 +176,21 @@ def _interpret_directives(raw_meta: dict) -> dict[str, Any]:
                 values[spec.name] = spec.default
             continue
 
-        if isinstance(raw, list) and not spec.multi:
-            raise MetaParseError(f"job contains multiple @{spec.name} directives, only one permitted")
-
         if spec.flag:
             if raw != "":
                 raise MetaParseError(f"job's @{spec.name} flag directive was passed data")
             values[spec.name] = True
-        elif spec.multi:
-            values[spec.name] = [spec.parse(spec.name, v) if spec.parse else v for v in raw]
+
+        if isinstance(raw, list):
+            if spec.multi:
+                values[spec.name] = [spec.parse(spec.name, v) if spec.parse else v for v in raw]
+            else:
+                raise MetaParseError(f"job contains multiple @{spec.name} directives, only one permitted")
         else:
-            values[spec.name] = spec.parse(spec.name, raw) if spec.parse else raw
+            if spec.multi:
+                values[spec.name] = [spec.parse(spec.name, raw) if spec.parse else raw]
+            else:
+                values[spec.name] = spec.parse(spec.name, raw) if spec.parse else raw
 
     return values
 
