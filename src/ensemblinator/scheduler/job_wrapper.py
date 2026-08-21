@@ -17,7 +17,6 @@ def wrapped_job(executable: Path, meta: JobMeta):
 def _execute_subprocess(job_id: str, executable: Path, timeout: float) -> tuple[int, str, float]:
     env = os.environ.copy()
     env["JOB_ID"] = job_id
-    env["PATH"] = f"{common.SRC_DIR / "cli" / "bin"}:{env.get("PATH", "")}"
 
     start = time.monotonic()
     try:
