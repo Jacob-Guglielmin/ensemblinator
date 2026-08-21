@@ -1,0 +1,13 @@
+[paths]
+# May be absolute, or relative to the folder this file is in
+jobs_dir = "./jobs"
+api_dir = "./api"
+
+[notify]
+# The server ID of the Discord server notifications will be sent to
+guild_id = "1234567890"
+
+[notify.webhooks]
+# Webhooks that send messages in the corresponding channel
+errors = "https://discord.com/api/webhooks/..." # REQUIRED
+my-channel = "https://discord.com/api/webhooks/..."
