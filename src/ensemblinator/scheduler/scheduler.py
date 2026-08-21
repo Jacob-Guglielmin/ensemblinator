@@ -10,7 +10,6 @@ from datetime import timezone
 import atexit
 
 class Scheduler:
-    # TODO break this up
     def __init__(self, jobs_dir: Path):
         self._jobs_dir = jobs_dir
 
@@ -24,14 +23,13 @@ class Scheduler:
             SystemEvent.DOWN: []
         }
 
-        self._register_jobs()
-
+    def start(self):
         self._execute_system_schedule(SystemEvent.UP)
-
+        
         self._scheduler.start()
         atexit.register(self._shutdown)
 
-    def _register_jobs(self):
+    def register_jobs(self):
         for path, meta in self._discover_jobs():
             match meta.schedule:
                 case CronSchedule():
