@@ -1,4 +1,4 @@
-from common import common
+from ensemblinator.common import common
 
 from flask import Flask
 from pathlib import Path

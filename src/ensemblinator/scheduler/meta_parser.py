@@ -1,4 +1,4 @@
-import common.notifier as notifier
+from ensemblinator.common.notifier import notifier
 
 import re
 from pathlib import Path

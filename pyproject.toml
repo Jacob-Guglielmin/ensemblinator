@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ensemblinator"
+version = "0.1.0"
+description = "Job orchestrator and API manager"
+requires-python = ">=3.12"
+dependencies = [
+    "apscheduler",
+    "flask",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+ensemblinator = "ensemblinator.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
