@@ -1,4 +1,4 @@
-from cli import job_state
+from ensemblinator.cli import job_state
 
 import sys
 

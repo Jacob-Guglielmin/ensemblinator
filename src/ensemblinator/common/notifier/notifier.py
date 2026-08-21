@@ -1,5 +1,5 @@
-import common.persistence.internal_state as internal_state
-from scheduler.meta_parser import JobMeta
+from ensemblinator.common.persistence import internal_state
+from ensemblinator.scheduler.meta_parser import JobMeta
 
 import tomllib
 import json
