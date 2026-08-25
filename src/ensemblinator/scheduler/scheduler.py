@@ -8,6 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 from pathlib import Path
 from datetime import timezone
 import atexit
+import sys
 
 class Scheduler:
     def __init__(self, jobs_dir: Path):
@@ -46,6 +47,21 @@ class Scheduler:
                     )
                 case _:
                     raise NotImplementedError(f"No scheduler handling for schedule type {type(meta.schedule).__name__}")
+
+    def run_immediate(self, executable: Path):
+        executable = executable.resolve()
+
+        try:
+            meta = parse_job_header(executable, self._jobs_dir)
+        except MetaParseError as e:
+            print(f"[ensemblinator] {str(e)}", file=sys.stderr)
+            sys.exit(1)
+
+        if meta is None:
+            print(f"[ensemblinator] no @job directive detected", file=sys.stderr)
+            sys.exit(1)
+
+        wrapped_job(executable, meta)
 
     def _discover_jobs(self):
         for path in sorted(self._jobs_dir.rglob("*")):
