@@ -57,7 +57,7 @@ def _initialize(config: dict):
 
     notifier.init_notifier(notifier.Notifier(config["notify"], config["paths"]["state_dir"]))
 
-    _scheduler = Scheduler(config["paths"]["jobs_dir"])
+    _scheduler = Scheduler(config["paths"]["jobs_dir"], config["paths"]["state_dir"])
 
     _api = API(config["paths"]["api_dir"], host="0.0.0.0", port=5000, workers=1)
 

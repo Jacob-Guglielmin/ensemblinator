@@ -11,8 +11,9 @@ import atexit
 import sys
 
 class Scheduler:
-    def __init__(self, jobs_dir: Path):
+    def __init__(self, jobs_dir: Path, state_dir: Path):
         self._jobs_dir = jobs_dir
+        self._state_dir = state_dir
 
         job_defaults = {
             "misfire_grace_time": 5*60
@@ -61,7 +62,7 @@ class Scheduler:
             print(f"[ensemblinator] no @job directive detected", file=sys.stderr)
             sys.exit(1)
 
-        wrapped_job(executable, meta)
+        wrapped_job(executable, meta, self._state_dir)
 
     def _discover_jobs(self):
         for path in sorted(self._jobs_dir.rglob("*")):
@@ -85,7 +86,7 @@ class Scheduler:
         jobs = self._system_scheduled[schedule]
 
         for job in jobs:
-            wrapped_job(job["executable"], job["meta"])
+            wrapped_job(job["executable"], job["meta"], self._state_dir)
 
     def _shutdown(self):
         print("shutting down scheduler")
