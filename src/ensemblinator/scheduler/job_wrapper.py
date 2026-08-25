@@ -7,16 +7,17 @@ import subprocess
 import time
 import os
 
-def wrapped_job(executable: Path, meta: JobMeta):
-    exit_code, output, duration = _execute_subprocess(meta.job_id, executable, meta.timeout)
+def wrapped_job(executable: Path, meta: JobMeta, state_dir: Path):
+    exit_code, output, duration = _execute_subprocess(meta.job_id, executable, state_dir, meta.timeout)
 
     print(exit_code, output, duration, meta)
 
     notifier.get().notify_job_complete(meta, exit_code, output, duration)
 
-def _execute_subprocess(job_id: str, executable: Path, timeout: float) -> tuple[int, str, float]:
+def _execute_subprocess(job_id: str, executable: Path, state_dir: Path, timeout: float) -> tuple[int, str, float]:
     env = os.environ.copy()
     env["JOB_ID"] = job_id
+    env["STATE_DIR"] = str(state_dir)
 
     start = time.monotonic()
     try:

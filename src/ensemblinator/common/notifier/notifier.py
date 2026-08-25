@@ -4,6 +4,7 @@ from ensemblinator.scheduler.meta_parser import JobMeta
 import json
 import requests
 import time
+from pathlib import Path
 
 # Discord message text limit is 2000 chars
 MESSAGE_BUDGET = 1950
@@ -11,8 +12,9 @@ MESSAGE_BUDGET = 1950
 ATTACHMENT_BUDGET = int(9.5 * 1024 * 1024)
 
 class Notifier:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, state_dir: Path):
         self._config = config
+        self._state_dir = state_dir
 
         webhooks = self._config.get("webhooks", {})
         if "errors" not in webhooks:
@@ -102,12 +104,12 @@ class Notifier:
         if interval <= 0: return False
 
         now = time.time()
-        prev_str = internal_state.state_get(job_id, "prev_heartbeat")
+        prev_str = internal_state.state_get(self._state_dir, job_id, "prev_heartbeat")
 
         if now - float(prev_str if prev_str else 0) < interval:
             return False
 
-        internal_state.state_set(job_id, "prev_heartbeat", str(now))
+        internal_state.state_set(self._state_dir, job_id, "prev_heartbeat", str(now))
         return True
 
     def _send_error(self, job_id: str, exit_code: int, consecutive_failures_required: int) -> bool:
@@ -115,13 +117,13 @@ class Notifier:
             return exit_code != 0
 
         if exit_code == 0:
-            internal_state.state_set(job_id, "consecutive_failures", str(0))
+            internal_state.state_set(self._state_dir, job_id, "consecutive_failures", str(0))
             return False
         
-        prev_str = internal_state.state_get(job_id, "consecutive_failures")
+        prev_str = internal_state.state_get(self._state_dir, job_id, "consecutive_failures")
         prev = int(prev_str) if prev_str else 0
         cur = prev + 1
-        internal_state.state_set(job_id, "consecutive_failures", str(cur))
+        internal_state.state_set(self._state_dir, job_id, "consecutive_failures", str(cur))
         return cur >= consecutive_failures_required
 
     def channel_exists(self, channel: str) -> bool:

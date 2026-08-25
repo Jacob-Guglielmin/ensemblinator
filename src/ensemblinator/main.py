@@ -42,7 +42,7 @@ def _load_config(config_path: Path):
     # TODO validation
 
     config_dir = config_path.parent
-    for key in ("jobs_dir", "api_dir"):
+    for key in ("jobs_dir", "api_dir", "state_dir"):
         p = Path(config["paths"][key])
         if not p.is_absolute():
             p = (config_dir / p)
@@ -55,7 +55,7 @@ def _initialize(config: dict):
     global _scheduler
     global _api
 
-    notifier.init_notifier(notifier.Notifier(config["notify"]))
+    notifier.init_notifier(notifier.Notifier(config["notify"], config["paths"]["state_dir"]))
 
     _scheduler = Scheduler(config["paths"]["jobs_dir"])
 

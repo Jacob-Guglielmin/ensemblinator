@@ -1,10 +1,8 @@
 from ensemblinator.common.persistence import kv_store
-from ensemblinator.common import common
 
 import sys
 import os
-
-_DB = common.STATE_DIR / "job-state.sqlite3"
+from pathlib import Path
 
 USAGE = """usage: ensemblinator-tools job-state <get|set|delete> [args...]
 
@@ -14,6 +12,12 @@ USAGE = """usage: ensemblinator-tools job-state <get|set|delete> [args...]
 """
 
 def main():
+    state_dir = os.environ.get("STATE_DIR")
+    if not state_dir:
+        print("[ensemblinator-tools job-state]: error: STATE_DIR env var is not set", file=sys.stderr)
+        sys.exit(1)
+    db = Path(state_dir) / "job-state.sqlite3"
+
     job_id = os.environ.get("JOB_ID")
     if not job_id:
         print("[ensemblinator-tools job-state]: error: JOB_ID env var is not set", file=sys.stderr)
@@ -31,20 +35,20 @@ def main():
             if len(rest) != 1:
                 print("[ensemblinator-tools job-state]: error: 'get' requires exactly one argument: <key>", file=sys.stderr)
                 sys.exit(1)
-            value = kv_store.kv_get(_DB, job_id, rest[0])
+            value = kv_store.kv_get(db, job_id, rest[0])
             print(value if value is not None else "", end="")
 
         elif cmd == "set":
             if len(rest) != 2:
                 print("[ensemblinator-tools job-state]: error: 'set' requires exactly two arguments: <key> <value>", file=sys.stderr)
                 sys.exit(1)
-            kv_store.kv_set(_DB, job_id, rest[0], rest[1])
+            kv_store.kv_set(db, job_id, rest[0], rest[1])
 
         elif cmd == "delete":
             if len(rest) != 1:
                 print("[ensemblinator-tools job-state]: error: 'delete' requires exactly one argument: <key>", file=sys.stderr)
                 sys.exit(1)
-            kv_store.kv_delete(_DB, job_id, rest[0])
+            kv_store.kv_delete(db, job_id, rest[0])
 
         else:
             print(f"[ensemblinator-tools job-state]: error: unknown command '{cmd}'", file=sys.stderr)
