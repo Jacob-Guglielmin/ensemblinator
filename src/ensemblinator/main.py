@@ -1,4 +1,4 @@
-from ensemblinator.web.manager import API
+from ensemblinator.api.manager import API
 from ensemblinator.scheduler.scheduler import Scheduler
 from ensemblinator.common.notifier import notifier
 
