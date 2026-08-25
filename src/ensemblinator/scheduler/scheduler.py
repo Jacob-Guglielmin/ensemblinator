@@ -55,11 +55,11 @@ class Scheduler:
         try:
             meta = parse_job_header(executable, self._jobs_dir)
         except MetaParseError as e:
-            print(f"[ensemblinator] {str(e)}", file=sys.stderr)
+            print(f"[ensemblinator]: {str(e)}", file=sys.stderr)
             sys.exit(1)
 
         if meta is None:
-            print(f"[ensemblinator] no @job directive detected", file=sys.stderr)
+            print(f"[ensemblinator]: no @job directive detected", file=sys.stderr)
             sys.exit(1)
 
         wrapped_job(executable, meta, self._state_dir)
@@ -74,7 +74,7 @@ class Scheduler:
             try:
                 meta = parse_job_header(path, self._jobs_dir)
             except MetaParseError as e:
-                notifier.get().notify([], f"[ensemblinator] {str(e)} ({path.relative_to(self._jobs_dir)})", error=True)
+                notifier.get().notify([], f"[ensemblinator]: {str(e)} ({path.relative_to(self._jobs_dir)})", error=True)
                 continue
 
             if meta is None:

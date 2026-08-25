@@ -7,12 +7,17 @@ COMMANDS = {
     "job-state": job_state.main
 }
 
-def main():
-    job_id = os.environ.get("JOB_ID")
-    if job_id is None:
-        # TODO entry point to make this possible with ensemblinator cli
-        print("[ensemblinator-tools]: JOB_ID not set (are you running a job file manually?)", file=sys.stderr)
+def _require_env(var_name: str) -> str:
+    value = os.environ.get(var_name)
+    if value is None:
+        print("[ensemblinator-tools]: missing required environment variables. job files should not be run manually.", file=sys.stderr)
+        print("[ensemblinator-tools]: invoke a job file directly using `ensemblinator --config <path> --manual-job-run <path>", file=sys.stderr)
         sys.exit(1)
+    return value
+
+def main():
+    expected_env_vars = ["JOB_ID", "STATE_DIR"]
+    env_vars = {var_name.lower(): _require_env(var_name) for var_name in expected_env_vars}        
 
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
         print("usage: ensemblinator-tools <command> [args...]", file=sys.stderr)
@@ -23,7 +28,4 @@ def main():
     command, *rest = sys.argv[1:]
     sys.argv = [command, *rest]
 
-    COMMANDS[command]()
-
-if __name__ == "__main__":
-    main()
+    COMMANDS[command](**env_vars)

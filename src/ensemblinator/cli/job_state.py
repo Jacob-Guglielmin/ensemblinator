@@ -11,17 +11,8 @@ USAGE = """usage: ensemblinator-tools job-state <get|set|delete> [args...]
   delete <key>           remove <key>
 """
 
-def main():
-    state_dir = os.environ.get("STATE_DIR")
-    if not state_dir:
-        print("[ensemblinator-tools job-state]: error: STATE_DIR env var is not set", file=sys.stderr)
-        sys.exit(1)
+def main(job_id: str, state_dir: str, **kwargs):
     db = Path(state_dir) / "job-state.sqlite3"
-
-    job_id = os.environ.get("JOB_ID")
-    if not job_id:
-        print("[ensemblinator-tools job-state]: error: JOB_ID env var is not set", file=sys.stderr)
-        sys.exit(1)
 
     args = sys.argv[1:]
     if not args:
@@ -58,6 +49,3 @@ def main():
     except Exception as e:
         print(f"[ensemblinator-tools job-state]: error: {e}", file=sys.stderr)
         sys.exit(1)
-
-if __name__ == "__main__":
-    main()
