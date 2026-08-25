@@ -20,17 +20,26 @@ def main():
     args = _parse_args()
     config = _load_config(args.config)
     _initialize(config)
-    _run()
+
+    if args.manual_job_run is None:
+        _run()
+    else:
+        _scheduler.run_immediate(args.manual_job_run)
 
 def _parse_args():
     parser = argparse.ArgumentParser(prog="ensemblinator", add_help=False)
     parser.add_argument("--config", type=Path, required=True, help="path to ensemblinator.toml")
+    parser.add_argument("--manual-job-run", type=Path, required=False, help="path to a job file to run once and immediately exit")
     return parser.parse_args()
 
 def _load_config(config_path: Path):
+    config_path = config_path.resolve()
+
     print("Loading configuration...")
     with open(config_path, "rb") as f:
         config = tomllib.load(f)
+
+    # TODO validation
 
     config_dir = config_path.parent
     for key in ("jobs_dir", "api_dir"):
@@ -49,7 +58,6 @@ def _initialize(config: dict):
     notifier.init_notifier(notifier.Notifier(config["notify"]))
 
     _scheduler = Scheduler(config["paths"]["jobs_dir"])
-    _scheduler.register_jobs()
 
     _api = API(config["paths"]["api_dir"], host="0.0.0.0", port=5000, workers=1)
 
@@ -59,6 +67,8 @@ def _run():
     print("Starting services...")
     global _scheduler
     global _api
+
+    _scheduler.register_jobs()
 
     _scheduler.start()
     _api.start()

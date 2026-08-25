@@ -8,7 +8,3 @@ Job orchestrator and API manager
     source venv/bin/activate
     pip install -e ".[dev]"
     pytest
-
-To run against a test config:
-
-    ensemblinator --config examples/ensemblinator.toml

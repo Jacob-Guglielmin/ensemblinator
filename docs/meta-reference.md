@@ -46,8 +46,7 @@ Maximum runtime in seconds. Jobs which reach their timeout are sent SIGTERM, the
 
 ### `@notify.channel <name>` (optional, but **required** if any `@notify.*` directives are present, multi)
 
-<!-- TODO: link to toml stuff -->
-Discord channel to send notifications to. May appear multiple times. Channel must exist in `notify.toml`.
+Discord channel to send notifications to. May appear multiple times. Channel must exist in [`ensemblinator.toml`](./conf-examples/ensemblinator.toml).
 
     # @notify.channel my-job-status
     # @notify.channel all-logs
