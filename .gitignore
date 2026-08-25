@@ -4,5 +4,3 @@ venv/
 .pytest_cache/
 *.egg-info/
 build/
-
-notify.toml
