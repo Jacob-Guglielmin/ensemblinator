@@ -4,6 +4,7 @@ from ensemblinator.scheduler.job_wrapper import wrapped_job
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 from datetime import timezone
 import atexit
@@ -83,11 +84,20 @@ class Scheduler:
 
             yield path, meta
 
-    def _execute_system_schedule(self, schedule: SystemEvent):
-        jobs = self._system_scheduled[schedule]
+    def _execute_system_schedule(self, event: SystemEvent):
+        jobs = self._system_scheduled[event]
+        if not jobs:
+            return
 
-        for job in jobs:
-            wrapped_job(job["executable"], job["meta"], self._state_dir)
+        with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+            futures = {
+                pool.submit(wrapped_job, job["executable"], job["meta"], self._state_dir): job
+                for job in jobs
+            }
+            done, not_done = wait(futures.keys(), timeout=55)
+
+            if len(not_done) > 0:
+                notifier.get().notify([], f"[ensemblinator]: system {event.name} job batch did not complete within the required timeout (likely an internal issue)", True)
 
     def _shutdown(self):
         print("shutting down scheduler")
