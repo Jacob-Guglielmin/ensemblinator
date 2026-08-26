@@ -35,12 +35,14 @@ Determines when the job runs. Supported types:
     # @schedule cron: 0 3 * * *
 
 **`system: <up|down>`** - Runs once, when ensemblinator starts/shuts down cleanly. Will not run on unclean shutdown (power loss, SIGKILL, etc.).
+Note that this schedule will change the default timeout to 45 seconds, and cause an error if a timeout greater than that is specified.
 
     # @schedule system: up
 
 ### `@timeout: <seconds>` (optional, default: 3600)
 
 Maximum runtime in seconds. Jobs which reach their timeout are sent SIGTERM, then SIGKILL after 5 seconds if they continue running.
+Note that jobs running on a `system` `@schedule` will have a default of 45 seconds, and will not accept values larger than that passed manually.
 
     # @timeout 60
 

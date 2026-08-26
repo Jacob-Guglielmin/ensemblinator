@@ -210,6 +210,11 @@ def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
     else:
         notify = None
 
+    if isinstance(values["schedule"], SystemSchedule) and float(raw_meta.get("timeout", 0)) > 45:
+        raise MetaParseError(f"job is using a system @schedule, but includes a timeout of >45 seconds")
+    else:
+        values["timeout"] = min(45, values["timeout"])
+
     meta = JobMeta(
         job_id=job_id,
         name=values["job"] if values["job"] else None,
