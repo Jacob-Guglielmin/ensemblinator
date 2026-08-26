@@ -9,7 +9,7 @@ import os
 def wrapped_job(executable: Path, meta: JobMeta, state_dir: Path):
     exit_code, output, duration = _execute_subprocess(meta.job_id, executable, state_dir, meta.timeout)
 
-    print(exit_code, output, duration, meta)
+    print(f"[ensemblinator]: ran {meta.job_id}, exit code {exit_code}, took {duration:.1f}s")
 
     notifier.get().notify_job_complete(meta, exit_code, output, duration)
 

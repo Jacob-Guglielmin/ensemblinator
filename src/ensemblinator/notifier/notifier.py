@@ -5,6 +5,8 @@ import json
 import requests
 import time
 from pathlib import Path
+import logging
+_logger = logging.getLogger(__name__)
 
 # Discord message text limit is 2000 chars
 MESSAGE_BUDGET = 1950
@@ -59,10 +61,10 @@ class Notifier:
         try:
             self._post("errors", content, ping=True, attachment=attachment)
         except requests.RequestException:
-            print("warning: failed to deliver message to errors channel")
+            _logger.warning("failed to deliver message to errors channel")
 
     def _report_failure(self, message: str):
-        print(f"warning: {message}")
+        _logger.warning(message)
         self._post_errors(f"[ensemblinator]: notification failure: {message}\n\n@everyone")
 
     def _build_log_attachment(self, content: str) -> bytes:
