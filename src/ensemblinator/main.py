@@ -1,4 +1,3 @@
-from ensemblinator.api.manager import API
 from ensemblinator.scheduler.scheduler import Scheduler
 from ensemblinator.common.notifier import notifier
 
@@ -10,11 +9,9 @@ import tomllib
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT_DIR / "config"
-API_DIR = ROOT_DIR / "api"
 JOBS_DIR = ROOT_DIR / "jobs"
 
 _scheduler: Scheduler
-_api: API
 
 def main():
     args = _parse_args()
@@ -42,7 +39,7 @@ def _load_config(config_path: Path):
     # TODO validation
 
     config_dir = config_path.parent
-    for key in ("jobs_dir", "api_dir", "state_dir"):
+    for key in ("jobs_dir", "state_dir"):
         p = Path(config["paths"][key])
         if not p.is_absolute():
             p = (config_dir / p)
@@ -53,25 +50,20 @@ def _load_config(config_path: Path):
 def _initialize(config: dict):
     print("Initializing...")
     global _scheduler
-    global _api
 
     notifier.init_notifier(notifier.Notifier(config["notify"], config["paths"]["state_dir"]))
 
     _scheduler = Scheduler(config["paths"]["jobs_dir"], config["paths"]["state_dir"])
-
-    _api = API(config["paths"]["api_dir"], host="0.0.0.0", port=5000, workers=1)
 
     signal.signal(signal.SIGTERM, _stop_app)
 
 def _run():
     print("Starting services...")
     global _scheduler
-    global _api
 
     _scheduler.register_jobs()
 
     _scheduler.start()
-    _api.start()
 
     try:
         signal.pause()

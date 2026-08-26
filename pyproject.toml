@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ensemblinator"
 version = "0.1.0"
-description = "Job orchestrator and API manager"
+description = "Job orchestrator with builtin notifications"
 requires-python = ">=3.12"
 dependencies = [
     "apscheduler",

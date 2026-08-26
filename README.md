@@ -1,6 +1,6 @@
 # ensemblinator
 
-Job orchestrator and API manager
+Job orchestrator with builtin notifications
 
 ## Development
 

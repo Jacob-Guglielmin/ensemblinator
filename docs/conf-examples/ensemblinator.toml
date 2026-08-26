@@ -1,7 +1,6 @@
 [paths]
 # May be absolute, or relative to the folder this file is in
 jobs_dir = "./path/to/jobs/dir"
-api_dir = "./path/to/api/dir"
 state_dir = "./path/to/state/dir"
 
 [notify]
