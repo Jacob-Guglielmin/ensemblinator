@@ -1,6 +1,5 @@
 from ensemblinator.scheduler.meta_parser import JobMeta
-from ensemblinator.common.notifier import notifier
-from ensemblinator.common import common
+from ensemblinator.notifier import notifier
 
 from pathlib import Path
 import subprocess

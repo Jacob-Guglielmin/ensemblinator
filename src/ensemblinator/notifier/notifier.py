@@ -1,4 +1,4 @@
-from ensemblinator.common.persistence import internal_state
+from ensemblinator.persistence import internal_state
 from ensemblinator.scheduler.meta_parser import JobMeta
 
 import json

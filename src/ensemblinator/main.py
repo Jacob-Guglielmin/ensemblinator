@@ -1,5 +1,5 @@
 from ensemblinator.scheduler.scheduler import Scheduler
-from ensemblinator.common.notifier import notifier
+from ensemblinator.notifier import notifier
 
 import signal
 from pathlib import Path

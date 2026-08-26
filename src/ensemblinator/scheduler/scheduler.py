@@ -1,5 +1,4 @@
-from ensemblinator.common import common
-from ensemblinator.common.notifier import notifier
+from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.meta_parser import parse_job_header, SystemEvent, MetaParseError, CronSchedule, SystemSchedule
 from ensemblinator.scheduler.job_wrapper import wrapped_job
 
@@ -9,6 +8,8 @@ from pathlib import Path
 from datetime import timezone
 import atexit
 import sys
+
+_SKIPPED_DISCOVERY_DIRS = {"node_modules", "__pycache__", ".git"}
 
 class Scheduler:
     def __init__(self, jobs_dir: Path, state_dir: Path):
@@ -68,7 +69,7 @@ class Scheduler:
         for path in sorted(self._jobs_dir.rglob("*")):
             if not path.is_file():
                 continue
-            if any(part in common.SKIPPED_DISCOVERY_DIRS for part in path.relative_to(self._jobs_dir).parts):
+            if any(part in _SKIPPED_DISCOVERY_DIRS for part in path.relative_to(self._jobs_dir).parts):
                 continue
 
             try:

@@ -1,5 +1,4 @@
-from ensemblinator.common.persistence import kv_store
-from ensemblinator.common import common
+from ensemblinator.persistence import kv_store
 
 from pathlib import Path
 

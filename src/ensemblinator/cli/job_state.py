@@ -1,4 +1,4 @@
-from ensemblinator.common.persistence import kv_store
+from ensemblinator.persistence import kv_store
 
 import sys
 import os
