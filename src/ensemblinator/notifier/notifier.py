@@ -133,7 +133,7 @@ class Notifier:
 
     def notify(
         self,
-        channels: str | list[str],
+        channels: str | list[str] | None,
         message: str,
         error: bool = False,
         log_text: str | None = None,
@@ -152,7 +152,9 @@ class Notifier:
                 message = f"{message} Log file attached."
                 attachment = self._build_log_attachment(log_text)
 
-        if isinstance(channels, str):
+        if channels is None:
+            channels = []
+        elif isinstance(channels, str):
             channels = [channels]
 
         links = []

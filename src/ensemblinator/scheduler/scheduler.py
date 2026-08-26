@@ -62,11 +62,11 @@ class Scheduler:
         try:
             meta = parse_job_header(executable, self._jobs_dir)
         except MetaParseError as e:
-            _logger.error(f"[ensemblinator]: {str(e)}")
+            _logger.error(str(e))
             sys.exit(1)
 
         if meta is None:
-            _logger.error(f"[ensemblinator]: no @job directive detected")
+            _logger.error("no @job directive detected")
             sys.exit(1)
 
         try:
@@ -85,7 +85,7 @@ class Scheduler:
             try:
                 meta = parse_job_header(path, self._jobs_dir)
             except MetaParseError as e:
-                notifier.get().notify([], f"[ensemblinator]: {str(e)} ({path.relative_to(self._jobs_dir)})", error=True)
+                _logger.error(f"{str(e)} ({path.relative_to(self._jobs_dir)})")
                 continue
 
             if meta is None:
@@ -106,7 +106,7 @@ class Scheduler:
             done, not_done = wait(futures.keys(), timeout=55)
 
             if len(not_done) > 0:
-                notifier.get().notify([], f"[ensemblinator]: system {event.name} job batch did not complete within the required timeout (likely an internal issue)", True)
+                _logger.error(f"system {event.name} job batch did not complete within the required timeout (likely an internal issue)")
 
             for future in done:
                 exc = future.exception()

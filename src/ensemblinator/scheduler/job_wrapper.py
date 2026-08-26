@@ -5,11 +5,13 @@ from pathlib import Path
 import subprocess
 import time
 import os
+import logging
+_logger = logging.getLogger(__name__)
 
 def wrapped_job(executable: Path, meta: JobMeta, state_dir: Path):
     exit_code, output, duration = _execute_subprocess(meta.job_id, executable, state_dir, meta.timeout)
 
-    print(f"[ensemblinator]: ran {meta.job_id}, exit code {exit_code}, took {duration:.1f}s")
+    _logger.info(f"ran {meta.job_id}, exit code {exit_code}, took {duration:.1f}s")
 
     notifier.get().notify_job_complete(meta, exit_code, output, duration)
 
