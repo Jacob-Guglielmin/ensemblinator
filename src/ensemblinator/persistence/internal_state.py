@@ -1,8 +1,13 @@
-from ensemblinator.persistence import kv_store
-
 from pathlib import Path
+
+from ensemblinator.persistence import kv_store
 
 _DB_FILENAME = "ensemblinator-state.sqlite3"
 
-def state_get(state_dir: Path, job_id: str, key: str): return kv_store.kv_get(state_dir / _DB_FILENAME, job_id, key)
-def state_set(state_dir: Path, job_id: str, key: str, value: str): return kv_store.kv_set(state_dir / _DB_FILENAME, job_id, key, value)
+
+def state_get(state_dir: Path, job_id: str, key: str):
+    return kv_store.kv_get(state_dir / _DB_FILENAME, job_id, key)
+
+
+def state_set(state_dir: Path, job_id: str, key: str, value: str):
+    return kv_store.kv_set(state_dir / _DB_FILENAME, job_id, key, value)
