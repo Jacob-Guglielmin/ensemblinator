@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from ensemblinator.connectivity.connectivity import has_connectivity
 from ensemblinator.notifier import notifier
-from ensemblinator.scheduler.meta_parser import JobMeta, JobRequirement
+from ensemblinator.scheduler.types import JobMeta, JobRequirement
 
 _logger = logging.getLogger(__name__)
 

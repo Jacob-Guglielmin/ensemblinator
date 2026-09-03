@@ -16,13 +16,10 @@ from ensemblinator.connectivity.connectivity_monitor import ConnectivityMonitor
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.job_wrapper import wrapped_job
 from ensemblinator.scheduler.meta_parser import (
-    CronSchedule,
-    EventSchedule,
-    JobMeta,
     MetaParseError,
-    TriggerEvent,
     parse_job_header,
 )
+from ensemblinator.scheduler.types import CronSchedule, EventSchedule, JobMeta, TriggerEvent
 
 _logger = logging.getLogger(__name__)
 

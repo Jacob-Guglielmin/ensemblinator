@@ -7,7 +7,7 @@ from pathlib import Path
 import requests
 
 from ensemblinator.persistence import internal_state
-from ensemblinator.scheduler.meta_parser import JobMeta
+from ensemblinator.scheduler.types import JobMeta
 
 _logger = logging.getLogger(__name__)
 

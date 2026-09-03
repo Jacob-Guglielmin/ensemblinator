@@ -1,59 +1,25 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from apscheduler.triggers.cron import CronTrigger
 
 from ensemblinator.notifier import notifier
+from ensemblinator.scheduler.types import (
+    CronSchedule,
+    EventSchedule,
+    JobMeta,
+    JobRequirement,
+    NotificationMeta,
+    Schedule,
+    TriggerEvent,
+)
 
 
 class MetaParseError(Exception):
     pass
-
-
-class TriggerEvent(Enum):
-    SYSTEM_UP = "system: up"
-    SYSTEM_DOWN = "system: down"
-    NETWORK_UP = "network: up"
-    NETWORK_DOWN = "network: down"
-
-
-@dataclass(frozen=True)
-class CronSchedule:
-    expression: str
-
-
-@dataclass(frozen=True)
-class EventSchedule:
-    event: TriggerEvent
-
-
-Schedule = CronSchedule | EventSchedule
-
-
-class JobRequirement(Enum):
-    NETWORK = "network"
-
-
-@dataclass(frozen=True)
-class NotificationMeta:
-    channels: list[str]
-    quiet_success: bool
-    heartbeat_interval: float
-    consecutive_failures: int
-
-
-@dataclass(frozen=True)
-class JobMeta:
-    job_id: str
-    name: str | None
-    schedules: list[Schedule]
-    timeout: float
-    requires: list[JobRequirement]
-    notify: NotificationMeta | None
 
 
 @dataclass(frozen=True)
@@ -104,20 +70,40 @@ META_LINE = _build_meta_regex()
 def _parse_positive_float(spec_name: str, v: str) -> float:
     try:
         float_v = float(v)
-        if float_v < 0:
+        if float_v <= 0:
             raise MetaParseError(f"job's @{spec_name} directive must be positive")
     except ValueError:
         raise MetaParseError(f"job's @{spec_name} directive must be a positive number")
     return float_v
 
 
+def _parse_nonneg_float(spec_name: str, v: str) -> float:
+    try:
+        float_v = float(v)
+        if float_v < 0:
+            raise MetaParseError(f"job's @{spec_name} directive must be non-negative")
+    except ValueError:
+        raise MetaParseError(f"job's @{spec_name} directive must be a non-negative number")
+    return float_v
+
+
 def _parse_positive_int(spec_name: str, v: str) -> int:
     try:
         int_v = int(v)
-        if int_v < 0:
+        if int_v <= 0:
             raise MetaParseError(f"job's @{spec_name} directive must be positive")
     except ValueError:
         raise MetaParseError(f"job's @{spec_name} directive must be a positive integer")
+    return int_v
+
+
+def _parse_nonneg_int(spec_name: str, v: str) -> int:
+    try:
+        int_v = int(v)
+        if int_v < 0:
+            raise MetaParseError(f"job's @{spec_name} directive must be non-negative")
+    except ValueError:
+        raise MetaParseError(f"job's @{spec_name} directive must be a non-negative integer")
     return int_v
 
 
@@ -125,16 +111,12 @@ def _parse_requires(spec_name: str, v: str) -> JobRequirement:
     try:
         return JobRequirement(v)
     except ValueError:
-        raise MetaParseError(
-            f"job's @{spec_name} directive could not be parsed: '{v}' is not an available requirement"
-        )
+        raise MetaParseError(f"job's @{spec_name} directive references unknown requirement '{v}'")
 
 
 def _parse_channel(spec_name: str, v: str) -> str:
     if not notifier.get().channel_exists(v):
-        raise MetaParseError(
-            f"job contains @{spec_name} directive with reference to unknown channel '{v}'"
-        )
+        raise MetaParseError(f"job's @{spec_name} directive references unknown channel '{v}'")
     return v
 
 
@@ -148,7 +130,7 @@ def _parse_schedule(spec_name: str, v: str) -> Schedule:
             return CronSchedule(rest)
         except ValueError as e:
             raise MetaParseError(
-                f"job's @{spec_name} directive contains an invalid cron expression: {e}"
+                f"job's @{spec_name} directive contains an invalid cron expression '{e}'"
             )
 
     if schedule_type in ["system", "network"]:
@@ -156,10 +138,12 @@ def _parse_schedule(spec_name: str, v: str) -> Schedule:
             return EventSchedule(TriggerEvent(f"{schedule_type}: {rest}"))
         except ValueError:
             raise MetaParseError(
-                f"job's @{spec_name} directive could not be parsed: '{rest}' is not a {schedule_type} schedule"
+                f"job's @{spec_name} directive contains an invalid {schedule_type} schedule '{rest}'"
             )
 
-    raise MetaParseError(f"job's @{spec_name} directive type '{schedule_type}' does not exist")
+    raise MetaParseError(
+        f"job's @{spec_name} directive references an unknown schedule type '{schedule_type}'"
+    )
 
 
 DIRECTIVES = [
@@ -169,7 +153,7 @@ DIRECTIVES = [
     DirectiveSpec(name="requires", parse=_parse_requires, multi=True),
     DirectiveSpec(name="notify.channel", multi=True, parse=_parse_channel),
     DirectiveSpec(name="notify.quiet-success", flag=True),
-    DirectiveSpec(name="notify.heartbeat-interval", parse=_parse_positive_float, default=86400.0),
+    DirectiveSpec(name="notify.heartbeat-interval", parse=_parse_nonneg_float, default=86400.0),
     DirectiveSpec(name="notify.consecutive-failures", parse=_parse_positive_int, default=1),
 ]
 
@@ -209,7 +193,7 @@ def parse_job_header(path: Path, jobs_dir: Path) -> JobMeta | None:
     if meta.get("job", None) is None:
         return None
 
-    return _interpret_meta(path.relative_to(jobs_dir).as_posix(), meta)
+    return _interpret_meta(path.resolve().relative_to(jobs_dir).as_posix(), meta)
 
 
 def _interpret_directives(raw_meta: dict[str, str | list[str]]) -> dict[str, Any]:
@@ -281,24 +265,22 @@ def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
     else:
         notify = None
 
-    if (
-        any(
-            isinstance(schedule, EventSchedule)
-            and schedule.event in [TriggerEvent.SYSTEM_UP, TriggerEvent.SYSTEM_DOWN]
-            for schedule in values["schedule"]
-        )
-        and float(raw_meta.get("timeout", 0)) > 45
+    if any(
+        isinstance(schedule, EventSchedule)
+        and schedule.event in [TriggerEvent.SYSTEM_UP, TriggerEvent.SYSTEM_DOWN]
+        for schedule in values["schedule"]
     ):
-        raise MetaParseError(
-            "job is using a system @schedule, but includes a timeout of >45 seconds"
-        )
-    else:
-        values["timeout"] = min(45, values["timeout"])
+        if float(raw_meta.get("timeout", 0)) > 45:
+            raise MetaParseError(
+                "job is using a system @schedule, but includes a timeout of >45 seconds"
+            )
+        else:
+            values["timeout"] = min(45, values["timeout"])
 
     seen_schedules = []
     for schedule in values["schedule"]:
         if schedule in seen_schedules:
-            raise MetaParseError("job declares the same @schedule twice")
+            raise MetaParseError("job contains duplicate @schedule directives")
         seen_schedules.append(schedule)
 
     meta = JobMeta(
