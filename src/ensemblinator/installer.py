@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 DEFAULT_CONFIG = """[paths]
 # May be absolute, or relative to the folder this file is in
@@ -31,6 +31,7 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=default.target
 """
 
+
 def install():
     print("Installing ensemblinator...")
     home = Path.home()
@@ -52,7 +53,9 @@ def install():
 
     unit_file = service_dir / "ensemblinator.service"
     if not unit_file.exists():
-        unit_file.write_text(DEFAULT_SERVICE_TEMPLATE.format(bin_path=bin_path, config_file=config_file))
+        unit_file.write_text(
+            DEFAULT_SERVICE_TEMPLATE.format(bin_path=bin_path, config_file=config_file)
+        )
         subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
     else:
         print(f"Existing systemd unit file found at {unit_file} not changed.")

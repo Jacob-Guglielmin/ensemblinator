@@ -21,7 +21,9 @@ def wrapped_job(executable: Path, meta: JobMeta, state_dir: Path, trigger: str):
             meta.job_id, executable, state_dir, meta.timeout, trigger
         )
 
-        _logger.info(f"ran {meta.job_id}, exit code {exit_code}, took {duration:.1f}s")
+        _logger.info(
+            f"ran {meta.job_id}, trigger '{trigger}', exit code {exit_code}, took {duration:.1f}s"
+        )
 
         notifier.get().notify_job_complete(meta, exit_code, output, duration)
     else:

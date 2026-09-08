@@ -3,10 +3,10 @@ import logging
 import signal
 import sys
 import threading
-import tomllib
 from pathlib import Path
 
 from ensemblinator import error_handlers, installer, logging_setup
+from ensemblinator.config import Config, load_config
 from ensemblinator.connectivity.connectivity import wait_for_ntp_sync
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.scheduler import Scheduler
@@ -33,7 +33,11 @@ def main():
     global _logger
     _logger = logging.getLogger(__name__)
 
-    config = _load_config(args.config)
+    try:
+        config = load_config(args.config)
+    except TypeError as e:
+        _logger.fatal(e)
+        sys.exit(1)
     _initialize(config)
 
     if not wait_for_ntp_sync(timeout=120, poll_interval=2):
@@ -47,7 +51,11 @@ def main():
 
 def _parse_args():
     parser = argparse.ArgumentParser(prog="ensemblinator", add_help=False)
-    parser.add_argument("--install", action="store_true", help="if set, rather than starting ensemblinator, sets up a systemd service to run automatically")
+    parser.add_argument(
+        "--install",
+        action="store_true",
+        help="if set, rather than starting ensemblinator, sets up a systemd service to run automatically",
+    )
     parser.add_argument("--config", type=Path, required=True, help="path to ensemblinator.toml")
     parser.add_argument(
         "--manual-job-run",
@@ -58,32 +66,13 @@ def _parse_args():
     return parser.parse_args()
 
 
-def _load_config(config_path: Path):
-    config_path = config_path.resolve()
-
-    _logger.info("loading configuration...")
-    with open(config_path, "rb") as f:
-        config = tomllib.load(f)
-
-    # TODO validation
-
-    config_dir = config_path.parent
-    for key in ("jobs_dir", "state_dir"):
-        p = Path(config["paths"][key])
-        if not p.is_absolute():
-            p = config_dir / p
-        config["paths"][key] = p.resolve()
-
-    return config
-
-
-def _initialize(config: dict):
+def _initialize(config: Config):
     _logger.info("initializing...")
 
-    notifier.init_notifier(notifier.Notifier(config["notify"], config["paths"]["state_dir"]))
+    notifier.init_notifier(notifier.Notifier(config.notify, config.paths.state_dir))
 
     global _scheduler
-    _scheduler = Scheduler(config["paths"]["jobs_dir"], config["paths"]["state_dir"])
+    _scheduler = Scheduler(config.paths.jobs_dir, config.paths.state_dir)
 
     signal.signal(signal.SIGTERM, _stop_app)
     signal.signal(signal.SIGINT, _stop_app)

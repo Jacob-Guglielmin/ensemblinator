@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from ensemblinator.config import NotifyConfig
 from ensemblinator.persistence import internal_state
 from ensemblinator.scheduler.types import JobMeta
 
@@ -18,19 +19,16 @@ ATTACHMENT_BUDGET = int(9.5 * 1024 * 1024)
 
 
 class Notifier:
-    def __init__(self, config: dict, state_dir: Path):
+    def __init__(self, config: NotifyConfig, state_dir: Path):
         self._config = config
         self._state_dir = state_dir
 
         self._pending: list[tuple[str, str, bytes | None, bool, float]] = []
 
-        webhooks = self._config.get("webhooks", {})
-        if "errors" not in webhooks:
+        if "errors" not in self._config.webhooks:
             raise ValueError(
                 "'errors' webhook is always required in notify config in ensemblinator.toml"
             )
-        if "guild_id" not in self._config:
-            raise ValueError("'guild_id' is always required in notify config in ensemblinator.toml")
 
     def _post(
         self,
@@ -39,7 +37,7 @@ class Notifier:
         ping: bool = False,
         attachment: bytes | None = None,
     ) -> str | None:
-        url = self._config["webhooks"][channel]
+        url = self._config.webhooks[channel]
 
         payload = {"content": content, "allowed_mentions": {"parse": ["everyone"] if ping else []}}
 
@@ -59,7 +57,7 @@ class Notifier:
 
         msg_id, chan_id = body.get("id"), body.get("channel_id")
         if msg_id and chan_id:
-            return f"https://discord.com/channels/{self._config['guild_id']}/{chan_id}/{msg_id}"
+            return f"https://discord.com/channels/{self._config.guild_id}/{chan_id}/{msg_id}"
         return None
 
     def _post_errors(self, content: str, attachment: bytes | None = None):
@@ -144,7 +142,7 @@ class Notifier:
         return cur >= consecutive_failures_required
 
     def channel_exists(self, channel: str) -> bool:
-        return channel in self._config["webhooks"]
+        return channel in self._config.webhooks
 
     def flush_pending(self):
         while self._pending:
