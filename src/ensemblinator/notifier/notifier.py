@@ -89,7 +89,7 @@ class Notifier:
         return data
 
     def _generate_message(
-        self, name: str | None, exit_code: int, output: str, duration: float
+        self, name: str | None, exit_code: int, output: str, duration: float, is_heartbeat: bool
     ) -> str:
         label = f"{name}: " if name else ""
         if exit_code == 0:
@@ -99,6 +99,8 @@ class Notifier:
 
         if output == "":
             message = f"{message} with no output."
+            if is_heartbeat:
+                message = f"{message}\n(heartbeat - no other activity to report)"
         else:
             message = f"{message}."
 
@@ -227,7 +229,7 @@ class Notifier:
         send_error = self._send_error(meta.job_id, exit_code, meta.notify.consecutive_failures)
 
         if (not be_quiet) or send_heartbeat:
-            message = self._generate_message(meta.name, exit_code, output, duration)
+            message = self._generate_message(meta.name, exit_code, output, duration, send_heartbeat)
             self.notify(meta.notify.channels, message, send_error, output)
 
     def notify_job_skipped(self, meta: JobMeta, reason: str):
