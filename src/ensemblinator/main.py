@@ -6,7 +6,8 @@ import threading
 import tomllib
 from pathlib import Path
 
-from ensemblinator import error_handlers, logging_setup
+from ensemblinator import error_handlers, installer, logging_setup
+from ensemblinator.connectivity.connectivity import wait_for_ntp_sync
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.scheduler import Scheduler
 
@@ -19,6 +20,11 @@ _logger: logging.Logger
 
 
 def main():
+    args = _parse_args()
+    if args.install:
+        installer.install()
+        sys.exit(0)
+
     sys.excepthook = error_handlers.handle_uncaught
     threading.excepthook = error_handlers.handle_thread_exception
 
@@ -27,9 +33,11 @@ def main():
     global _logger
     _logger = logging.getLogger(__name__)
 
-    args = _parse_args()
     config = _load_config(args.config)
     _initialize(config)
+
+    if not wait_for_ntp_sync(timeout=120, poll_interval=2):
+        _logger.error("proceeding without confirmed NTP sync after timeout")
 
     if args.manual_job_run is None:
         _run()
@@ -39,6 +47,7 @@ def main():
 
 def _parse_args():
     parser = argparse.ArgumentParser(prog="ensemblinator", add_help=False)
+    parser.add_argument("--install", action="store_true", help="if set, rather than starting ensemblinator, sets up a systemd service to run automatically")
     parser.add_argument("--config", type=Path, required=True, help="path to ensemblinator.toml")
     parser.add_argument(
         "--manual-job-run",
