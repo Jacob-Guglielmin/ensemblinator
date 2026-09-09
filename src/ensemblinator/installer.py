@@ -25,6 +25,7 @@ StartLimitBurst=3
 ExecStart={bin_path} --config {config_file}
 Restart=on-failure
 RestartSec=5
+TimeoutStopSec=60
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
