@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 
 class TriggerEvent(Enum):
@@ -42,3 +43,9 @@ class JobMeta:
     timeout: float
     requires: list[JobRequirement]
     notify: NotificationMeta | None
+
+@dataclass(frozen=True)
+class Job:
+    meta: JobMeta
+    executable: Path
+    expected_hash: str | None

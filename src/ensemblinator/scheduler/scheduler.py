@@ -1,11 +1,11 @@
 import atexit
+import hashlib
 import logging
 import sys
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import UTC
 from pathlib import Path
-from typing import NamedTuple
 
 from apscheduler.events import EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -19,16 +19,11 @@ from ensemblinator.scheduler.meta_parser import (
     MetaParseError,
     parse_job_header,
 )
-from ensemblinator.scheduler.types import CronSchedule, EventSchedule, JobMeta, TriggerEvent
+from ensemblinator.scheduler.types import CronSchedule, EventSchedule, Job, TriggerEvent
 
 _logger = logging.getLogger(__name__)
 
 _SKIPPED_DISCOVERY_DIRS = {"node_modules", "__pycache__", ".git"}
-
-
-class Job(NamedTuple):
-    executable: Path
-    meta: JobMeta
 
 
 class Scheduler:
@@ -61,29 +56,28 @@ class Scheduler:
 
     def register_jobs(self):
         job_ids_registered: list[str] = []
-        for path, meta in self._discover_jobs():
-            for schedule in meta.schedules:
+        for job in self._discover_jobs():
+            for schedule in job.meta.schedules:
                 match schedule:
                     case CronSchedule():
                         self._scheduler.add_job(
                             func=wrapped_job,
                             trigger=CronTrigger.from_crontab(schedule.expression),
                             kwargs={
-                                "executable": path,
-                                "meta": meta,
+                                "job": job,
                                 "state_dir": self._state_dir,
                                 "trigger": f"cron: {schedule.expression}",
                             },
-                            id=meta.job_id,
-                            name=meta.job_id,
+                            id=job.meta.job_id,
+                            name=job.meta.job_id,
                         )
                     case EventSchedule():
-                        self._event_scheduled[schedule.event].append(Job(path, meta))
+                        self._event_scheduled[schedule.event].append(job)
                     case _:
                         raise NotImplementedError(
                             f"No scheduler handling for schedule type {type(schedule).__name__}"
                         )
-            job_ids_registered.append(meta.job_id)
+            job_ids_registered.append(job.meta.job_id)
         _logger.info(
             f"registered {len(job_ids_registered)} job{'s' if len(job_ids_registered) != 1 else ''}:\n{'\n'.join(job_ids_registered)}"
         )
@@ -101,7 +95,7 @@ class Scheduler:
             _logger.error("no @job directive detected")
             sys.exit(1)
 
-        wrapped_job(executable, meta, self._state_dir, "manual")
+        wrapped_job(Job(meta=meta, executable=executable, expected_hash=None), self._state_dir, "manual")
 
     def _discover_jobs(self):
         for path in sorted(self._jobs_dir.rglob("*")):
@@ -121,7 +115,9 @@ class Scheduler:
             if meta is None:
                 continue
 
-            yield path, meta
+            job_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+
+            yield Job(meta=meta, executable=path, expected_hash=job_hash)
 
     def _execute_event_schedule(self, event: TriggerEvent):
         jobs = self._event_scheduled[event]
@@ -131,7 +127,7 @@ class Scheduler:
         with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
             futures = {
                 pool.submit(
-                    wrapped_job, job.executable, job.meta, self._state_dir, event.value
+                    wrapped_job, job, self._state_dir, event.value
                 ): job
                 for job in jobs
             }

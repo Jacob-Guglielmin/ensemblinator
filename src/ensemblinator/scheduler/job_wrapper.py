@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import subprocess
@@ -8,26 +9,32 @@ from typing import NamedTuple
 
 from ensemblinator.connectivity.connectivity import has_connectivity
 from ensemblinator.notifier import notifier
-from ensemblinator.scheduler.types import JobMeta, JobRequirement
+from ensemblinator.scheduler.types import Job, JobRequirement
 
 _logger = logging.getLogger(__name__)
 
 
-def wrapped_job(executable: Path, meta: JobMeta, state_dir: Path, trigger: str):
-    unmet_reqs = _validate_requirements(meta.requires)
+def wrapped_job(job: Job, state_dir: Path, trigger: str):
+    if job.expected_hash is not None and hashlib.sha256(job.executable.read_bytes()).hexdigest() != job.expected_hash:
+        _logger.info(f"skipped {job.meta.job_id}: job file has changed on disk")
+        notifier.get().notify_job_skipped(job.meta, "job file has changed on disk")
+        return
+
+    unmet_reqs = _validate_requirements(job.meta.requires)
 
     if not unmet_reqs:
         exit_code, output, duration = _execute_subprocess(
-            meta.job_id, executable, state_dir, meta.timeout, trigger
+            job.meta.job_id, job.executable, state_dir, job.meta.timeout, trigger
         )
 
         _logger.info(
-            f"ran {meta.job_id}, trigger '{trigger}', exit code {exit_code}, took {duration:.1f}s"
+            f"ran {job.meta.job_id}, trigger '{trigger}', exit code {exit_code}, took {duration:.1f}s"
         )
 
-        notifier.get().notify_job_complete(meta, exit_code, output, duration)
+        notifier.get().notify_job_complete(job.meta, exit_code, output, duration)
     else:
-        notifier.get().notify_job_skipped(meta, ", ".join(unmet_reqs))
+        _logger.info(f"skipped {job.meta.job_id}: {", ".join(unmet_reqs)}")
+        notifier.get().notify_job_skipped(job.meta, ", ".join(unmet_reqs))
 
 
 class Check(NamedTuple):
