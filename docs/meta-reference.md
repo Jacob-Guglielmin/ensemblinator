@@ -59,15 +59,17 @@ Discord channel to send notifications to. May appear multiple times. Channel mus
     # @notify.channel my-job-status
     # @notify.channel all-logs
 
-### `@notify.quiet-success` (flag)
+### `@notify.success-notifications <level>` (optional, default: all)
 
-Suppress notifications for successful runs (exit code 0) which produce no output. Failures and noisy successes still notify as usual.
+Selects what categories of successful runs (exit code 0) will result in notifications. Failures will always notify as usual.
 
-    # @notify.quiet-success
+**Available levels:** `all` (send notification on every run), `noisy` (send notification only on runs which produce output), `none` (never send notifications)
+
+    # @notify.success-notifications noisy
 
 ### `@notify.heartbeat-interval <seconds>` (optional, default: 86400)
 
-When used with `@notify.quiet-success`, pushes a success notification through anyway if at least this much time has passed since the previous notification. A value of 0 suppresses heartbeats.
+When used with `@notify.success-notifications` at a level other than `all`, pushes a success notification through anyway if at least this much time has passed since the previous notification. A value of 0 suppresses heartbeats.
 
     # @notify.heartbeat-interval 3600
 

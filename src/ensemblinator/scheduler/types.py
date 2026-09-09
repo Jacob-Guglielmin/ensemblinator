@@ -3,6 +3,12 @@ from enum import Enum
 from pathlib import Path
 
 
+class SuccessNotificationLevel(Enum):
+    ALL = "all"
+    NOISY = "noisy"
+    NONE = "none"
+
+
 class TriggerEvent(Enum):
     SYSTEM_UP = "system: up"
     SYSTEM_DOWN = "system: down"
@@ -30,7 +36,7 @@ class JobRequirement(Enum):
 @dataclass(frozen=True)
 class NotificationMeta:
     channels: list[str]
-    quiet_success: bool
+    success_notifications: SuccessNotificationLevel
     heartbeat_interval: float
     consecutive_failures: int
 
@@ -43,6 +49,7 @@ class JobMeta:
     timeout: float
     requires: list[JobRequirement]
     notify: NotificationMeta | None
+
 
 @dataclass(frozen=True)
 class Job:

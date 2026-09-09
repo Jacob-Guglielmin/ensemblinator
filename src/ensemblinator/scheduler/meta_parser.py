@@ -1,6 +1,7 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from ensemblinator.scheduler.types import (
     JobRequirement,
     NotificationMeta,
     Schedule,
+    SuccessNotificationLevel,
     TriggerEvent,
 )
 
@@ -107,11 +109,11 @@ def _parse_nonneg_int(spec_name: str, v: str) -> int:
     return int_v
 
 
-def _parse_requires(spec_name: str, v: str) -> JobRequirement:
+def _parse_enum[E: Enum](spec_name: str, v: str, enum_cls: type[E], kind: str) -> E:
     try:
-        return JobRequirement(v)
+        return enum_cls(v)
     except ValueError:
-        raise MetaParseError(f"job's @{spec_name} directive references unknown requirement '{v}'")
+        raise MetaParseError(f"job's @{spec_name} directive references unknown {kind} '{v}'")
 
 
 def _parse_channel(spec_name: str, v: str) -> str:
@@ -150,9 +152,19 @@ DIRECTIVES = [
     DirectiveSpec(name="job", required=True),
     DirectiveSpec(name="schedule", required=True, multi=True, parse=_parse_schedule),
     DirectiveSpec(name="timeout", parse=_parse_positive_float, default=3600.0),
-    DirectiveSpec(name="requires", parse=_parse_requires, multi=True),
+    DirectiveSpec(
+        name="requires",
+        parse=lambda spec_name, v: _parse_enum(spec_name, v, JobRequirement, "requirement"),
+        multi=True,
+    ),
     DirectiveSpec(name="notify.channel", multi=True, parse=_parse_channel),
-    DirectiveSpec(name="notify.quiet-success", flag=True),
+    DirectiveSpec(
+        name="notify.success-notifications",
+        parse=lambda spec_name, v: _parse_enum(
+            spec_name, v, SuccessNotificationLevel, "notification level"
+        ),
+        default=SuccessNotificationLevel.ALL,
+    ),
     DirectiveSpec(name="notify.heartbeat-interval", parse=_parse_nonneg_float, default=86400.0),
     DirectiveSpec(name="notify.consecutive-failures", parse=_parse_positive_int, default=1),
 ]
@@ -258,7 +270,7 @@ def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
             )
         notify = NotificationMeta(
             channels=values["notify.channel"],
-            quiet_success=values["notify.quiet-success"],
+            success_notifications=values["notify.success-notifications"],
             heartbeat_interval=values["notify.heartbeat-interval"],
             consecutive_failures=values["notify.consecutive-failures"],
         )

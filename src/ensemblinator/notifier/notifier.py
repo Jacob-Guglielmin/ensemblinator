@@ -8,7 +8,7 @@ import requests
 
 from ensemblinator.config import NotifyConfig
 from ensemblinator.persistence import internal_state
-from ensemblinator.scheduler.types import JobMeta
+from ensemblinator.scheduler.types import JobMeta, SuccessNotificationLevel
 
 _logger = logging.getLogger(__name__)
 
@@ -219,7 +219,16 @@ class Notifier:
         if meta.notify is None:
             return
 
-        be_quiet = meta.notify.quiet_success and exit_code == 0 and output == ""
+        if exit_code == 0:
+            match meta.notify.success_notifications:
+                case SuccessNotificationLevel.ALL:
+                    be_quiet = False
+                case SuccessNotificationLevel.NOISY:
+                    be_quiet = output == ""
+                case SuccessNotificationLevel.NONE:
+                    be_quiet = True
+        else:
+            be_quiet = False
         send_heartbeat = be_quiet and self._heartbeat_due(
             meta.job_id, meta.notify.heartbeat_interval
         )

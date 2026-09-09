@@ -95,7 +95,9 @@ class Scheduler:
             _logger.error("no @job directive detected")
             sys.exit(1)
 
-        wrapped_job(Job(meta=meta, executable=executable, expected_hash=None), self._state_dir, "manual")
+        wrapped_job(
+            Job(meta=meta, executable=executable, expected_hash=None), self._state_dir, "manual"
+        )
 
     def _discover_jobs(self):
         for path in sorted(self._jobs_dir.rglob("*")):
@@ -126,10 +128,7 @@ class Scheduler:
 
         with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
             futures = {
-                pool.submit(
-                    wrapped_job, job, self._state_dir, event.value
-                ): job
-                for job in jobs
+                pool.submit(wrapped_job, job, self._state_dir, event.value): job for job in jobs
             }
             done, not_done = wait(
                 futures.keys(), timeout=max(job.meta.timeout for job in jobs) + 10

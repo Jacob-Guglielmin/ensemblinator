@@ -10,6 +10,7 @@ from ensemblinator.scheduler.types import (
     EventSchedule,
     JobMeta,  # noqa: F401 - used in type annotations only
     JobRequirement,
+    SuccessNotificationLevel,
     TriggerEvent,
 )
 
@@ -100,19 +101,19 @@ class TestDirectiveShape:
         with pytest.raises(MetaParseError, match="multiple"):
             parsed({"job": ["a", "b"]})
 
-    def test_flag_with_content_raises(self, parsed):
-        with pytest.raises(MetaParseError, match="flag"):
-            parsed({"notify.quiet-success": "foo"})
+    # def test_flag_with_content_raises(self, parsed):
+    #     with pytest.raises(MetaParseError, match="flag"):
+    #         parsed({"notify.some-flag-directive": "foo"})
 
-    def test_flag_true_or_false(self, parsed):
-        assert (
-            parsed({"notify.channel": "general", "notify.quiet-success": ""}).notify.quiet_success
-            is True
-        )
-        assert (
-            parsed({"notify.channel": "general", "notify.quiet-success": None}).notify.quiet_success
-            is False
-        )
+    # def test_flag_true_or_false(self, parsed):
+    #     assert (
+    #         parsed({"notify.channel": "general", "notify.some-flag-directive": ""}).notify.some_flag_directive
+    #         is True
+    #     )
+    #     assert (
+    #         parsed({"notify.channel": "general", "notify.some-flag-directive": None}).notify.some_flag_directive
+    #         is False
+    #     )
 
     def test_defaults_applied(self, parsed):
         meta = parsed({"timeout": None})
@@ -191,6 +192,31 @@ class TestDirectiveParsing:
         assert meta.notify is not None
         assert meta.notify.channels == ["general", "errors"]
 
+    def test_success_notifications_empty(self, parsed):
+        assert (
+            parsed(
+                {"notify.channel": "general", "notify.success-notifications": None}
+            ).notify.success_notifications
+            == SuccessNotificationLevel.ALL
+        )
+
+    def test_success_notifications_valid(self, parsed):
+        assert (
+            parsed(
+                {"notify.channel": "general", "notify.success-notifications": "noisy"}
+            ).notify.success_notifications
+            == SuccessNotificationLevel.NOISY
+        )
+
+    def test_success_notifications_invalid(self, parsed):
+        with pytest.raises(MetaParseError, match="unknown notification level"):
+            parsed(
+                {
+                    "notify.channel": "general",
+                    "notify.success-notifications": "not-a-notification-level",
+                }
+            )
+
     @pytest.mark.parametrize("bad_value", ["", "foo", "-1"])
     def test_notify_heartbeat_interval_invalid(self, parsed, bad_value):
         with pytest.raises(MetaParseError, match="must be"):
@@ -223,7 +249,7 @@ class TestDirectiveParsing:
 class TestAdditionalRules:
     def test_notify_without_channel(self, parsed):
         with pytest.raises(MetaParseError, match="channel"):
-            parsed({"notify.quiet-success": ""})
+            parsed({"notify.consecutive-failures": "3"})
 
     def test_no_notify(self, parsed):
         assert parsed().notify is None

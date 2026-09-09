@@ -15,7 +15,10 @@ _logger = logging.getLogger(__name__)
 
 
 def wrapped_job(job: Job, state_dir: Path, trigger: str):
-    if job.expected_hash is not None and hashlib.sha256(job.executable.read_bytes()).hexdigest() != job.expected_hash:
+    if (
+        job.expected_hash is not None
+        and hashlib.sha256(job.executable.read_bytes()).hexdigest() != job.expected_hash
+    ):
         _logger.info(f"skipped {job.meta.job_id}: job file has changed on disk")
         notifier.get().notify_job_skipped(job.meta, "job file has changed on disk")
         return
@@ -33,7 +36,7 @@ def wrapped_job(job: Job, state_dir: Path, trigger: str):
 
         notifier.get().notify_job_complete(job.meta, exit_code, output, duration)
     else:
-        _logger.info(f"skipped {job.meta.job_id}: {", ".join(unmet_reqs)}")
+        _logger.info(f"skipped {job.meta.job_id}: {', '.join(unmet_reqs)}")
         notifier.get().notify_job_skipped(job.meta, ", ".join(unmet_reqs))
 
 
