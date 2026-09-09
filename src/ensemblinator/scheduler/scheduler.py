@@ -60,6 +60,7 @@ class Scheduler:
         atexit.register(self._shutdown)
 
     def register_jobs(self):
+        job_ids_registered: list[str] = []
         for path, meta in self._discover_jobs():
             for schedule in meta.schedules:
                 match schedule:
@@ -82,6 +83,10 @@ class Scheduler:
                         raise NotImplementedError(
                             f"No scheduler handling for schedule type {type(schedule).__name__}"
                         )
+            job_ids_registered.append(meta.job_id)
+        _logger.info(
+            f"registered {len(job_ids_registered)} job{'s' if len(job_ids_registered) != 1 else ''}:\n{'\n'.join(job_ids_registered)}"
+        )
 
     def run_immediate(self, executable: Path):
         executable = executable.resolve()
