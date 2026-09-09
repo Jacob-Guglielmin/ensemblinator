@@ -56,14 +56,20 @@ def _parse_args():
         action="store_true",
         help="if set, rather than starting ensemblinator, sets up a systemd service to run automatically",
     )
-    parser.add_argument("--config", type=Path, required=True, help="path to ensemblinator.toml")
+    parser.add_argument("--config", type=Path, help="path to ensemblinator.toml")
     parser.add_argument(
         "--manual-job-run",
         type=Path,
-        required=False,
         help="path to a job file to run once and immediately exit",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.install and (args.config or args.manual_job_run):
+        parser.error("--install cannot be combined with --config or --manual-job-run")
+    if not args.install and not args.config:
+        parser.error("--config is required unless --install is set")
+
+    return args
 
 
 def _initialize(config: Config):
