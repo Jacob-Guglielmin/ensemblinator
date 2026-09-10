@@ -17,7 +17,7 @@ def main(job_id: str, state_dir: str, **kwargs):
     args = sys.argv[1:]
     if not args:
         print(USAGE, file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     cmd, *rest = args
 
@@ -28,9 +28,11 @@ def main(job_id: str, state_dir: str, **kwargs):
                     "[ensemblinator-tools job-state]: error: 'get' requires exactly one argument: <key>",
                     file=sys.stderr,
                 )
-                sys.exit(1)
+                sys.exit(2)
             value = kv_store.kv_get(db, job_id, rest[0])
-            print(value if value is not None else "", end="")
+            if value is None:
+                sys.exit(1)
+            print(value, end="")
 
         elif cmd == "set":
             if len(rest) != 2:
@@ -38,7 +40,7 @@ def main(job_id: str, state_dir: str, **kwargs):
                     "[ensemblinator-tools job-state]: error: 'set' requires exactly two arguments: <key> <value>",
                     file=sys.stderr,
                 )
-                sys.exit(1)
+                sys.exit(2)
             kv_store.kv_set(db, job_id, rest[0], rest[1])
 
         elif cmd == "delete":
@@ -47,7 +49,7 @@ def main(job_id: str, state_dir: str, **kwargs):
                     "[ensemblinator-tools job-state]: error: 'delete' requires exactly one argument: <key>",
                     file=sys.stderr,
                 )
-                sys.exit(1)
+                sys.exit(2)
             kv_store.kv_delete(db, job_id, rest[0])
 
         else:
@@ -55,8 +57,8 @@ def main(job_id: str, state_dir: str, **kwargs):
                 f"[ensemblinator-tools job-state]: error: unknown command '{cmd}'", file=sys.stderr
             )
             print(USAGE, file=sys.stderr)
-            sys.exit(1)
+            sys.exit(2)
 
     except Exception as e:  # noqa: BLE001 - this is a CLI tool so a traceback should never be emitted
         print(f"[ensemblinator-tools job-state]: error: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)

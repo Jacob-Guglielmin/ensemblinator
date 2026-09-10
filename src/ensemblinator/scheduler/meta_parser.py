@@ -165,7 +165,7 @@ DIRECTIVES = [
         ),
         default=SuccessNotificationLevel.ALL,
     ),
-    DirectiveSpec(name="notify.heartbeat-interval", parse=_parse_nonneg_float, default=86400.0),
+    DirectiveSpec(name="notify.heartbeat-interval", parse=_parse_nonneg_float, default=0.0),
     DirectiveSpec(name="notify.consecutive-failures", parse=_parse_positive_int, default=1),
 ]
 

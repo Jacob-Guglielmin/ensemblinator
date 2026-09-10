@@ -67,11 +67,11 @@ Selects what categories of successful runs (exit code 0) will result in notifica
 
     # @notify.success-notifications noisy
 
-### `@notify.heartbeat-interval <seconds>` (optional, default: 86400)
+### `@notify.heartbeat-interval <seconds>` (optional, default: 0)
 
 When used with `@notify.success-notifications` at a level other than `all`, pushes a success notification through anyway if at least this much time has passed since the previous notification. A value of 0 suppresses heartbeats.
 
-    # @notify.heartbeat-interval 3600
+    # @notify.heartbeat-interval 86400
 
 ### `@notify.consecutive-failures <count>` (optional, default: 1)
 

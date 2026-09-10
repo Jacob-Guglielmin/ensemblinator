@@ -17,7 +17,7 @@ def _require_env(var_name: str) -> str:
             "[ensemblinator-tools]: invoke a job file directly using `ensemblinator --config <path> --manual-job-run <path>",
             file=sys.stderr,
         )
-        sys.exit(1)
+        sys.exit(2)
     return value
 
 
@@ -28,7 +28,7 @@ def main():
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
         print("usage: ensemblinator-tools <command> [args...]", file=sys.stderr)
         print(f"commands: {', '.join(COMMANDS)}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     # fix the args for downstream parsers
     command, *rest = sys.argv[1:]
