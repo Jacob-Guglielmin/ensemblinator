@@ -61,6 +61,8 @@ def _execute_subprocess(
     env["JOB_ID"] = job_id
     env["STATE_DIR"] = str(state_dir)
     env["JOB_TRIGGER"] = trigger
+    tools_dir = Path.home() / ".local" / "bin"
+    env["PATH"] = f"{tools_dir}:{env.get('PATH', '')}"
 
     start = time.monotonic()
     try:
