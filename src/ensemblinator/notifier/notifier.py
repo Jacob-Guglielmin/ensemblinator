@@ -97,10 +97,11 @@ class Notifier:
 
         if output == "":
             message = f"{message} with no output."
-            if is_heartbeat:
-                message = f"{message}\n(heartbeat - no other activity to report)"
         else:
             message = f"{message}."
+
+        if is_heartbeat:
+            message = f"{message}\n(heartbeat - no other activity to report)"
 
         return message
 
