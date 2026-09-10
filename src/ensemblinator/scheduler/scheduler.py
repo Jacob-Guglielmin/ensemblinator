@@ -1,4 +1,3 @@
-import atexit
 import hashlib
 import logging
 import sys
@@ -31,6 +30,8 @@ class Scheduler:
         self._jobs_dir = jobs_dir
         self._state_dir = state_dir
 
+        self._running: bool = False
+
         self._network_up: bool | None = None
         self._network_consecutive: int = 0
 
@@ -52,7 +53,8 @@ class Scheduler:
 
         self._scheduler.start()
         self._connectivity_monitor.start()
-        atexit.register(self._shutdown)
+
+        self._running = True
 
     def register_jobs(self):
         job_ids_registered: list[str] = []
@@ -150,7 +152,10 @@ class Scheduler:
         event = TriggerEvent.NETWORK_UP if network_up else TriggerEvent.NETWORK_DOWN
         self._execute_event_schedule(event)
 
-    def _shutdown(self):
+    def shutdown(self):
+        if not self._running:
+            return
+
         _logger.info("shutting down scheduler...")
         self._connectivity_monitor.stop()
         self._scheduler.shutdown(wait=False)
@@ -158,3 +163,4 @@ class Scheduler:
             _logger.info("executing system down jobs...")
             self._execute_event_schedule(TriggerEvent.SYSTEM_DOWN)
         _logger.info("scheduler shutdown complete")
+        self._running = False

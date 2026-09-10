@@ -97,6 +97,7 @@ def _run():
 
 
 def _stop_app(signum, frame):
+    _scheduler.shutdown()
     sys.exit(0)
 
 
