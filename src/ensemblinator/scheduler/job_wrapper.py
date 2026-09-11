@@ -15,9 +15,28 @@ _logger = logging.getLogger(__name__)
 
 
 def wrapped_job(job: Job, state_dir: Path, trigger: str):
+    try:
+        job_content_bytes = job.executable.read_bytes()
+    except FileNotFoundError:
+        _logger.info(f"skipped {job.meta.job_id}: job file no longer exists")
+        notifier.get().notify_job_skipped(job.meta, "job file no longer exists")
+        return
+    except PermissionError:
+        _logger.info(f"skipped {job.meta.job_id}: insufficient permissions to read job file")
+        notifier.get().notify_job_skipped(job.meta, "insufficient permissions to read job file")
+        return
+    except IsADirectoryError:
+        _logger.info(f"skipped {job.meta.job_id}: directory found at previous location of job file")
+        notifier.get().notify_job_skipped(job.meta, "directory found at previous location of job file")
+        return
+    except OSError as e:
+        _logger.info(f"skipped {job.meta.job_id}: unknown error reading job file: {e}")
+        notifier.get().notify_job_skipped(job.meta, f"unknown error reading job file: {e}")
+        return
+
     if (
         job.expected_hash is not None
-        and hashlib.sha256(job.executable.read_bytes()).hexdigest() != job.expected_hash
+        and hashlib.sha256(job_content_bytes).hexdigest() != job.expected_hash
     ):
         _logger.info(f"skipped {job.meta.job_id}: job file has changed on disk")
         notifier.get().notify_job_skipped(job.meta, "job file has changed on disk")
