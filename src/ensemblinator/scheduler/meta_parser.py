@@ -69,6 +69,12 @@ def _build_meta_regex():
 META_LINE = _build_meta_regex()
 
 
+def _require_nonempty_string(spec_name: str, v: str) -> str:
+    if len(v) == 0:
+        raise MetaParseError(f"job's @{spec_name} directive must not be empty")
+    return v
+
+
 def _parse_positive_float(spec_name: str, v: str) -> float:
     try:
         float_v = float(v)
@@ -149,7 +155,7 @@ def _parse_schedule(spec_name: str, v: str) -> Schedule:
 
 
 DIRECTIVES = [
-    DirectiveSpec(name="job", required=True),
+    DirectiveSpec(name="job", required=True, parse=_require_nonempty_string),
     DirectiveSpec(name="schedule", required=True, multi=True, parse=_parse_schedule),
     DirectiveSpec(name="timeout", parse=_parse_positive_float, default=3600.0),
     DirectiveSpec(
@@ -297,7 +303,7 @@ def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
 
     meta = JobMeta(
         job_id=job_id,
-        name=values["job"] if values["job"] else None,
+        name=values["job"],
         schedules=values["schedule"],
         timeout=values["timeout"],
         requires=values["requires"],

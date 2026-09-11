@@ -44,7 +44,7 @@ class NotificationMeta:
 @dataclass(frozen=True)
 class JobMeta:
     job_id: str
-    name: str | None
+    name: str
     schedules: list[Schedule]
     timeout: float
     requires: list[JobRequirement]

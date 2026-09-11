@@ -63,7 +63,7 @@ class TestJobParsing:
         [
             "",
             ["# @schedule cron: * * * * *", "# @timeout 30"],
-            ["foo", "# @job"],
+            ["foo", "# @job foo"],
         ],
     )
     def test_non_jobs_none(self, parsed_raw_text, non_job_content):
@@ -72,14 +72,16 @@ class TestJobParsing:
     @pytest.mark.parametrize("comment_prefix", ["#", "//"])
     def test_comment_types(self, parsed_raw_text, comment_prefix):
         assert (
-            parsed_raw_text([f"{comment_prefix} @job", f"{comment_prefix} @schedule network: up"])
+            parsed_raw_text(
+                [f"{comment_prefix} @job foo", f"{comment_prefix} @schedule network: up"]
+            )
             is not None
         )
 
     @pytest.mark.parametrize("line", ["", "     ", "# foo"])
     def test_interspersed_lines(self, parsed_raw_text, line):
-        assert parsed_raw_text([line, "# @job", "# @schedule network: up"]) is not None
-        assert parsed_raw_text(["# @schedule network: up", line, "# @job"]) is not None
+        assert parsed_raw_text([line, "# @job foo", "# @schedule network: up"]) is not None
+        assert parsed_raw_text(["# @schedule network: up", line, "# @job foo"]) is not None
 
     def test_job_id(self, parsed):
         assert (
@@ -126,9 +128,12 @@ class TestDirectiveShape:
 
 
 class TestDirectiveParsing:
-    def test_job(self, parsed):
+    def test_job_invalid(self, parsed):
+        with pytest.raises(MetaParseError, match="must not be empty"):
+            parsed({"job": ""})
+
+    def test_job_valid(self, parsed):
         assert parsed({"job": "foo"}).name == "foo"
-        assert parsed({"job": ""}).name is None
 
     def test_unknown_schedule(self, parsed):
         with pytest.raises(MetaParseError, match="unknown schedule"):

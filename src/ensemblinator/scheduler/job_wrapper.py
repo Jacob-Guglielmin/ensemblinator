@@ -27,7 +27,9 @@ def wrapped_job(job: Job, state_dir: Path, trigger: str):
         return
     except IsADirectoryError:
         _logger.info(f"skipped {job.meta.job_id}: directory found at previous location of job file")
-        notifier.get().notify_job_skipped(job.meta, "directory found at previous location of job file")
+        notifier.get().notify_job_skipped(
+            job.meta, "directory found at previous location of job file"
+        )
         return
     except OSError as e:
         _logger.info(f"skipped {job.meta.job_id}: unknown error reading job file: {e}")
