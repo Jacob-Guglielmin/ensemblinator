@@ -8,6 +8,8 @@ from pathlib import Path
 from ensemblinator import error_handlers, installer, logging_setup
 from ensemblinator.config import Config, load_config
 from ensemblinator.connectivity.connectivity import wait_for_ntp_sync
+from ensemblinator.db.clients import Database
+from ensemblinator.jobs.registry import JobRegistry
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.scheduler import Scheduler
 
@@ -15,6 +17,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT_DIR / "config"
 JOBS_DIR = ROOT_DIR / "jobs"
 
+_database: Database
+_job_registry: JobRegistry
 _scheduler: Scheduler
 _logger: logging.Logger
 
@@ -43,10 +47,7 @@ def main():
     if not wait_for_ntp_sync(timeout=120, poll_interval=2):
         _logger.error("proceeding without confirmed NTP sync after timeout")
 
-    if args.manual_job_run is None:
-        _run()
-    else:
-        _scheduler.run_immediate(args.manual_job_run)
+    _run()
 
 
 def _parse_args():
@@ -57,11 +58,6 @@ def _parse_args():
         help="if set, rather than starting ensemblinator, sets up a systemd service to run automatically",
     )
     parser.add_argument("--config", type=Path, help="path to ensemblinator.toml")
-    parser.add_argument(
-        "--manual-job-run",
-        type=Path,
-        help="path to a job file to run once and immediately exit",
-    )
     args = parser.parse_args()
 
     if args.install and (args.config or args.manual_job_run):
@@ -77,8 +73,16 @@ def _initialize(config: Config):
 
     notifier.init_notifier(notifier.Notifier(config.notify, config.paths.state_dir))
 
+    global _database
+    _database = Database(config.paths.state_dir)
+
+    global _job_registry
+    _job_registry = JobRegistry(config.paths.jobs_dir)
+
+    jobs = _job_registry.discover()
+
     global _scheduler
-    _scheduler = Scheduler(config.paths.jobs_dir, config.paths.state_dir)
+    _scheduler = Scheduler(jobs, _database, config.paths.state_dir)
 
     signal.signal(signal.SIGTERM, _stop_app)
     signal.signal(signal.SIGINT, _stop_app)
@@ -86,8 +90,6 @@ def _initialize(config: Config):
 
 def _run():
     _logger.info("starting services...")
-
-    _scheduler.register_jobs()
 
     _scheduler.start()
 
@@ -98,6 +100,7 @@ def _run():
 
 def _stop_app(signum, frame):
     _scheduler.shutdown()
+    _database.close()
     sys.exit(0)
 
 

@@ -18,9 +18,9 @@ Meta directives appear in comments at the top of the file. All directives must a
 
 ## Directives
 
-### `@job <name>` (**required**)
+### `@job <id>` (**required**)
 
-Marks this file as a job. The name is used for identification and will be prepended to any notifications sent on behalf of this job.
+Marks this file as a job. The id must be unique across all jobs.
 
     # @job my-job
 

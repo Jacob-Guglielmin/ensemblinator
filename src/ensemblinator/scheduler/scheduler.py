@@ -1,6 +1,4 @@
-import hashlib
 import logging
-import sys
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import UTC
@@ -12,22 +10,17 @@ from apscheduler.triggers.cron import CronTrigger
 
 from ensemblinator import error_handlers
 from ensemblinator.connectivity.connectivity_monitor import ConnectivityMonitor
+from ensemblinator.db.clients import Database
+from ensemblinator.jobs.models import CronSchedule, EventSchedule, Job, TriggerEvent
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.job_wrapper import wrapped_job
-from ensemblinator.scheduler.meta_parser import (
-    MetaParseError,
-    parse_job_header,
-)
-from ensemblinator.scheduler.types import CronSchedule, EventSchedule, Job, TriggerEvent
 
 _logger = logging.getLogger(__name__)
 
-_SKIPPED_DISCOVERY_DIRS = {"node_modules", "__pycache__", ".git"}
-
 
 class Scheduler:
-    def __init__(self, jobs_dir: Path, state_dir: Path):
-        self._jobs_dir = jobs_dir
+    def __init__(self, jobs: list[Job], database: Database, state_dir: Path):
+        self._database = database
         self._state_dir = state_dir
 
         self._running: bool = False
@@ -48,6 +41,8 @@ class Scheduler:
 
         self._event_scheduled: defaultdict[TriggerEvent, list[Job]] = defaultdict(list)
 
+        self._register_jobs(jobs)
+
     def start(self):
         self._execute_event_schedule(TriggerEvent.SYSTEM_UP)
 
@@ -56,9 +51,9 @@ class Scheduler:
 
         self._running = True
 
-    def register_jobs(self):
+    def _register_jobs(self, jobs: list[Job]):
         job_ids_registered: list[str] = []
-        for job in self._discover_jobs():
+        for job in jobs:
             for schedule in job.meta.schedules:
                 match schedule:
                     case CronSchedule():
@@ -67,6 +62,7 @@ class Scheduler:
                             trigger=CronTrigger.from_crontab(schedule.expression),
                             kwargs={
                                 "job": job,
+                                "database": self._database,
                                 "state_dir": self._state_dir,
                                 "trigger": f"cron: {schedule.expression}",
                             },
@@ -84,45 +80,6 @@ class Scheduler:
             f"registered {len(job_ids_registered)} job{'s' if len(job_ids_registered) != 1 else ''}:\n{'\n'.join(job_ids_registered)}"
         )
 
-    def run_immediate(self, executable: Path):
-        executable = executable.resolve()
-
-        try:
-            meta = parse_job_header(executable, self._jobs_dir)
-        except MetaParseError as e:
-            _logger.error(str(e))
-            sys.exit(1)
-
-        if meta is None:
-            _logger.error("no @job directive detected")
-            sys.exit(1)
-
-        wrapped_job(
-            Job(meta=meta, executable=executable, expected_hash=None), self._state_dir, "manual"
-        )
-
-    def _discover_jobs(self):
-        for path in sorted(self._jobs_dir.rglob("*")):
-            if not path.is_file():
-                continue
-            if any(
-                part in _SKIPPED_DISCOVERY_DIRS for part in path.relative_to(self._jobs_dir).parts
-            ):
-                continue
-
-            try:
-                meta = parse_job_header(path, self._jobs_dir)
-            except MetaParseError as e:
-                _logger.error(f"{e!s} ({path.relative_to(self._jobs_dir)})")
-                continue
-
-            if meta is None:
-                continue
-
-            job_hash = hashlib.sha256(path.read_bytes()).hexdigest()
-
-            yield Job(meta=meta, executable=path, expected_hash=job_hash)
-
     def _execute_event_schedule(self, event: TriggerEvent):
         jobs = self._event_scheduled[event]
         if not jobs:
@@ -130,7 +87,8 @@ class Scheduler:
 
         with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
             futures = {
-                pool.submit(wrapped_job, job, self._state_dir, event.value): job for job in jobs
+                pool.submit(wrapped_job, job, self._database, self._state_dir, event.value): job
+                for job in jobs
             }
             done, not_done = wait(
                 futures.keys(), timeout=max(job.meta.timeout for job in jobs) + 10

@@ -7,8 +7,7 @@ from typing import Any
 
 from apscheduler.triggers.cron import CronTrigger
 
-from ensemblinator.notifier import notifier
-from ensemblinator.scheduler.types import (
+from ensemblinator.jobs.models import (
     CronSchedule,
     EventSchedule,
     JobMeta,
@@ -18,6 +17,7 @@ from ensemblinator.scheduler.types import (
     SuccessNotificationLevel,
     TriggerEvent,
 )
+from ensemblinator.notifier import notifier
 
 
 class MetaParseError(Exception):

@@ -1,18 +1,16 @@
-from collections.abc import Callable  # noqa: F401 - used in type annotations only
 from pathlib import Path
 
 import pytest
 
-from ensemblinator.notifier import notifier
-from ensemblinator.scheduler.meta_parser import MetaParseError, parse_job_header
-from ensemblinator.scheduler.types import (
+from ensemblinator.jobs.meta_parser import MetaParseError, parse_job_header
+from ensemblinator.jobs.models import (
     CronSchedule,
     EventSchedule,
-    JobMeta,  # noqa: F401 - used in type annotations only
     JobRequirement,
     SuccessNotificationLevel,
     TriggerEvent,
 )
+from ensemblinator.notifier import notifier
 
 
 @pytest.fixture(autouse=True)

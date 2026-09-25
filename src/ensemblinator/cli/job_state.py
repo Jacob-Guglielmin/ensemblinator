@@ -1,18 +1,18 @@
 import sys
 from pathlib import Path
 
-from ensemblinator.persistence import kv_store
+from ensemblinator.db.clients import JobStateClient
 
 USAGE = """usage: ensemblinator-tools job-state <get|set|delete> [args...]
 
-  get <key>              print the value for <key> (empty string if unset)
+  get <key>              print the value for <key> (or exit code 1 if unset)
   set <key> <value>      store <value> under <key>
   delete <key>           remove <key>
 """
 
 
 def main(job_id: str, state_dir: str, **kwargs):
-    db = Path(state_dir) / "job-state.sqlite3"
+    db = JobStateClient(Path(state_dir))
 
     args = sys.argv[1:]
     if not args:
@@ -29,7 +29,7 @@ def main(job_id: str, state_dir: str, **kwargs):
                     file=sys.stderr,
                 )
                 sys.exit(2)
-            value = kv_store.kv_get(db, job_id, rest[0])
+            value = db.get_job_state(job_id, rest[0])
             if value is None:
                 sys.exit(1)
             print(value, end="")
@@ -41,7 +41,7 @@ def main(job_id: str, state_dir: str, **kwargs):
                     file=sys.stderr,
                 )
                 sys.exit(2)
-            kv_store.kv_set(db, job_id, rest[0], rest[1])
+            db.set_job_state(job_id, rest[0], rest[1])
 
         elif cmd == "delete":
             if len(rest) != 1:
@@ -50,7 +50,7 @@ def main(job_id: str, state_dir: str, **kwargs):
                     file=sys.stderr,
                 )
                 sys.exit(2)
-            kv_store.kv_delete(db, job_id, rest[0])
+            db.delete_job_state(job_id, rest[0])
 
         else:
             print(
@@ -62,3 +62,6 @@ def main(job_id: str, state_dir: str, **kwargs):
     except Exception as e:  # noqa: BLE001 - this is a CLI tool so a traceback should never be emitted
         print(f"[ensemblinator-tools job-state]: error: {e}", file=sys.stderr)
         sys.exit(2)
+
+    finally:
+        db.close()

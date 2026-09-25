@@ -8,57 +8,59 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ensemblinator.connectivity.connectivity import has_connectivity
+from ensemblinator.db.clients import Database
+from ensemblinator.jobs.models import Job, JobMeta, JobRequirement
 from ensemblinator.notifier import notifier
-from ensemblinator.scheduler.types import Job, JobRequirement
 
 _logger = logging.getLogger(__name__)
 
 
-def wrapped_job(job: Job, state_dir: Path, trigger: str):
+def wrapped_job(job: Job, database: Database, state_dir: Path, trigger: str):
     try:
         job_content_bytes = job.executable.read_bytes()
     except FileNotFoundError:
-        _logger.info(f"skipped {job.meta.job_id}: job file no longer exists")
-        notifier.get().notify_job_skipped(job.meta, "job file no longer exists")
+        skip_job_run(job.meta, "job file no longer exists", trigger, database)
         return
     except PermissionError:
-        _logger.info(f"skipped {job.meta.job_id}: insufficient permissions to read job file")
-        notifier.get().notify_job_skipped(job.meta, "insufficient permissions to read job file")
+        skip_job_run(job.meta, "insufficient permissions to read job file", trigger, database)
         return
     except IsADirectoryError:
-        _logger.info(f"skipped {job.meta.job_id}: directory found at previous location of job file")
-        notifier.get().notify_job_skipped(
-            job.meta, "directory found at previous location of job file"
+        skip_job_run(
+            job.meta, "directory found at previous location of job file", trigger, database
         )
         return
     except OSError as e:
-        _logger.info(f"skipped {job.meta.job_id}: unknown error reading job file: {e}")
-        notifier.get().notify_job_skipped(job.meta, f"unknown error reading job file: {e}")
+        skip_job_run(job.meta, f"unknown error reading job file: {e}", trigger, database)
         return
 
     if (
         job.expected_hash is not None
         and hashlib.sha256(job_content_bytes).hexdigest() != job.expected_hash
     ):
-        _logger.info(f"skipped {job.meta.job_id}: job file has changed on disk")
-        notifier.get().notify_job_skipped(job.meta, "job file has changed on disk")
+        skip_job_run(job.meta, "job file has changed on disk", trigger, database)
         return
 
     unmet_reqs = _validate_requirements(job.meta.requires)
+    if unmet_reqs:
+        skip_job_run(job.meta, ", ".join(unmet_reqs), trigger, database)
+        return
 
-    if not unmet_reqs:
-        exit_code, output, duration = _execute_subprocess(
-            job.meta.job_id, job.executable, state_dir, job.meta.timeout, trigger
-        )
+    run_id = database.run_start(job.meta.job_id, trigger)
+    exit_code, output, duration = _execute_subprocess(
+        job.meta.job_id, job.executable, state_dir, job.meta.timeout, trigger
+    )
+    database.run_finish(run_id, "success" if exit_code == 0 else "failure", exit_code, output)
 
-        _logger.info(
-            f"ran {job.meta.job_id}, trigger '{trigger}', exit code {exit_code}, took {duration:.1f}s"
-        )
+    _logger.info(
+        f"ran {job.meta.job_id}, trigger '{trigger}', exit code {exit_code}, took {duration:.1f}s"
+    )
+    notifier.get().notify_job_complete(job.meta, exit_code, output, duration)
 
-        notifier.get().notify_job_complete(job.meta, exit_code, output, duration)
-    else:
-        _logger.info(f"skipped {job.meta.job_id}: {', '.join(unmet_reqs)}")
-        notifier.get().notify_job_skipped(job.meta, ", ".join(unmet_reqs))
+
+def skip_job_run(job_meta: JobMeta, reason: str, trigger: str, database: Database):
+    _logger.info(f"skipped {job_meta.job_id}: {reason}")
+    notifier.get().notify_job_skipped(job_meta, reason)
+    database.run_skip(job_meta.job_id, trigger, reason)
 
 
 class Check(NamedTuple):

@@ -7,8 +7,8 @@ from pathlib import Path
 import requests
 
 from ensemblinator.config import NotifyConfig
+from ensemblinator.jobs.models import JobMeta, SuccessNotificationLevel
 from ensemblinator.persistence import internal_state
-from ensemblinator.scheduler.types import JobMeta, SuccessNotificationLevel
 
 _logger = logging.getLogger(__name__)
 
