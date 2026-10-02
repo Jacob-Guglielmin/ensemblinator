@@ -16,5 +16,6 @@ class Database(_WithDBConnection, _SchemaOwner, _JobsWriteMethods, _JobRunsWrite
 class JobStateClient(_WithDBConnection, _JobStateMethods):
     pass
 
+
 class WebAPIClient(_WithDBConnection):
     pass

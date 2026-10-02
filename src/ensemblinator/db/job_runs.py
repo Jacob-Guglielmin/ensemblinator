@@ -24,7 +24,9 @@ class _JobRunsWriteMethods(ConnectionProvider):
         assert cur.lastrowid is not None
         return cur.lastrowid
 
-    def run_finish(self, run_id: int, status: str, exit_code: int | None, log_content: str | None) -> None:
+    def run_finish(
+        self, run_id: int, status: str, exit_code: int | None, log_content: str | None
+    ) -> None:
         self._connection().execute(
             "UPDATE job_runs SET finished_at=?, status=?, exit_code=? WHERE run_id=?",
             (time.time(), status, exit_code, run_id),

@@ -87,7 +87,12 @@ class Notifier:
         return data
 
     def _generate_message(
-        self, name: str | None, exit_code: int, output: str | None, duration: float, is_heartbeat: bool
+        self,
+        name: str | None,
+        exit_code: int,
+        output: str | None,
+        duration: float,
+        is_heartbeat: bool,
     ) -> str:
         label = f"{name}: " if name else ""
         if exit_code == 0:
@@ -216,7 +221,9 @@ class Notifier:
                 attachment=(None if links else attachment),
             )
 
-    def notify_job_complete(self, meta: JobMeta, exit_code: int, output: str | None, duration: float):
+    def notify_job_complete(
+        self, meta: JobMeta, exit_code: int, output: str | None, duration: float
+    ):
         if meta.notify is None:
             return
 

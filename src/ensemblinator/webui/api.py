@@ -4,6 +4,7 @@ from ensemblinator.db.clients import WebAPIClient
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
+
 @bp.get("ping")
 def ping():
     return jsonify({"ok": True})

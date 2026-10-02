@@ -1,41 +1,43 @@
 name: Build and publish
 
 on:
-    push:
-        branches: [master]
+  push:
+    branches: [master]
 
 jobs:
-    build-and-publish:
-        runs-on: ubuntu-latest
-        environment: pypi
-        permissions:
-            id-token: write
-        steps:
-            - uses: actions/checkout@v4
+  build-and-publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: "24"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
 
-            - name: Build Angular UI
-              run: |
-                  cd webui-src
-                  npm install
-                  npx ng build --output-path ../src/ensemblinator/webui/static
+      - name: Build Angular UI
+        run: |
+          cd webui-src
+          npm install
+          npx ng build --output-path ../src/ensemblinator/webui/static
 
-            - uses: actions/setup-python@v5
-              with:
-                  python-version: "3.12"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-            - name: Set version
-              run: |
-                  VERSION="0.0.$(git rev-list --count HEAD)"
-                  sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+      - name: Set version
+        run: |
+          VERSION="0.0.$(git rev-list --count HEAD)"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
 
-            - name: Build wheel
-              run: |
-                  pip install build
-                  python -m build --wheel
+      - name: Build wheel
+        run: |
+          pip install build
+          python -m build --wheel
 
-            - name: Publish to PyPI
-              uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

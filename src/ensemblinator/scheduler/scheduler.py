@@ -96,9 +96,7 @@ class Scheduler:
             else:
                 timeout = max(job.meta.timeout for job in jobs) + 5
 
-            done, not_done = wait(
-                futures.keys(), timeout
-            )
+            done, not_done = wait(futures.keys(), timeout)
 
             if len(not_done) > 0:
                 _logger.error(

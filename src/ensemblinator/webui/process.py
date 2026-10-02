@@ -6,6 +6,7 @@ from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 
+
 class WebAPIProcess:
     def __init__(self, state_dir: Path, host: str = "0.0.0.0", port: int = 5000):
         self._state_dir = state_dir
@@ -18,12 +19,16 @@ class WebAPIProcess:
         env["ENSEMBLINATOR_STATE_DIR"] = str(self._state_dir)
         self._proc = subprocess.Popen(
             [
-                sys.executable, "-m", "gunicorn",
+                sys.executable,
+                "-m",
+                "gunicorn",
                 "ensemblinator.webui.wsgi:app",
-                "--bind", f"{self._host}:{self._port}",
-                "--log-level", "warning"
+                "--bind",
+                f"{self._host}:{self._port}",
+                "--log-level",
+                "warning",
             ],
-            env=env
+            env=env,
         )
 
     def begin_stop(self) -> None:

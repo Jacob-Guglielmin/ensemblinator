@@ -43,7 +43,7 @@ def wrapped_job(job: Job, database: Database, state_dir: Path, trigger: str):
         return
 
     run_id = database.run_start(job.meta.job_id, trigger)
-    
+
     exit_code, output, duration = _execute_subprocess(
         job.meta.job_id, job.executable, state_dir, job.meta.timeout, trigger
     )
