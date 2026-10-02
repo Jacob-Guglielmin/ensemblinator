@@ -12,6 +12,7 @@ from ensemblinator.db.clients import Database
 from ensemblinator.jobs.registry import JobRegistry
 from ensemblinator.notifier import notifier
 from ensemblinator.scheduler.scheduler import Scheduler
+from ensemblinator.webui.process import WebAPIProcess
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT_DIR / "config"
@@ -20,6 +21,7 @@ JOBS_DIR = ROOT_DIR / "jobs"
 _database: Database
 _job_registry: JobRegistry
 _scheduler: Scheduler
+_webui: WebAPIProcess
 _logger: logging.Logger
 
 
@@ -60,8 +62,8 @@ def _parse_args():
     parser.add_argument("--config", type=Path, help="path to ensemblinator.toml")
     args = parser.parse_args()
 
-    if args.install and (args.config or args.manual_job_run):
-        parser.error("--install cannot be combined with --config or --manual-job-run")
+    if args.install and args.config:
+        parser.error("--install cannot be combined with --config")
     if not args.install and not args.config:
         parser.error("--config is required unless --install is set")
 
@@ -77,12 +79,15 @@ def _initialize(config: Config):
     _database = Database(config.paths.state_dir)
 
     global _job_registry
-    _job_registry = JobRegistry(config.paths.jobs_dir)
+    _job_registry = JobRegistry(_database, config.paths.jobs_dir)
 
     jobs = _job_registry.discover()
 
     global _scheduler
     _scheduler = Scheduler(jobs, _database, config.paths.state_dir)
+
+    global _webui
+    _webui = WebAPIProcess(config.paths.state_dir)
 
     signal.signal(signal.SIGTERM, _stop_app)
     signal.signal(signal.SIGINT, _stop_app)
@@ -93,13 +98,17 @@ def _run():
 
     _scheduler.start()
 
+    _webui.start()
+
     _logger.info("all systems running")
 
     signal.pause()
 
 
 def _stop_app(signum, frame):
-    _scheduler.shutdown()
+    _webui.begin_stop()
+    _scheduler.shutdown(timeout=50.0)
+    _webui.ensure_killed(timeout=2.0)
     _database.close()
     sys.exit(0)
 

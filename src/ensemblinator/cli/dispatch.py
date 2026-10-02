@@ -13,10 +13,6 @@ def _require_env(var_name: str) -> str:
             "[ensemblinator-tools]: missing required environment variables. job files should not be run manually.",
             file=sys.stderr,
         )
-        print(
-            "[ensemblinator-tools]: invoke a job file directly using `ensemblinator --config <path> --manual-job-run <path>",
-            file=sys.stderr,
-        )
         sys.exit(2)
     return value
 

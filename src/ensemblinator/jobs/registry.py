@@ -1,7 +1,9 @@
 import hashlib
 import logging
 import sys
+from pathlib import Path
 
+from ensemblinator.db.clients import Database
 from ensemblinator.jobs.meta_parser import MetaParseError, parse_job_header
 from ensemblinator.jobs.models import Job
 
@@ -12,7 +14,8 @@ _SKIPPED_DISCOVERY_DIRS = {"node_modules", "__pycache__", ".git"}
 
 
 class JobRegistry:
-    def __init__(self, jobs_directory):
+    def __init__(self, database: Database, jobs_directory: Path):
+        self._database = database
         self._jobs_dir = jobs_directory
         self._jobs: list[Job] = []
 
@@ -21,6 +24,7 @@ class JobRegistry:
             _logger.error("Jobs already discovered")
             sys.exit(1)
 
+        jobs = []
         for path in sorted(self._jobs_dir.rglob("*")):
             if not path.is_file():
                 continue
@@ -30,7 +34,7 @@ class JobRegistry:
                 continue
 
             try:
-                meta = parse_job_header(path, self._jobs_dir)
+                meta = parse_job_header(path)
             except MetaParseError as e:
                 _logger.error(f"{e!s} ({path.relative_to(self._jobs_dir)})")
                 continue
@@ -45,9 +49,11 @@ class JobRegistry:
                 _logger.error(f"Duplicate job id '{meta.job_id}': {path}, {dup_job.executable}")
                 sys.exit(1)
 
-            self._jobs.append(Job(meta=meta, executable=path, expected_hash=job_hash))
+            jobs.append(Job(meta=meta, executable=path, expected_hash=job_hash))
 
-        return self._jobs
+        self._jobs = jobs
+        self._database.rebuild_jobs(jobs)
+        return jobs
 
     def jobs(self) -> list[Job]:
         return self._jobs

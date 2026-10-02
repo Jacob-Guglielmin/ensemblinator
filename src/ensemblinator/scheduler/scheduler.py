@@ -64,7 +64,7 @@ class Scheduler:
                                 "job": job,
                                 "database": self._database,
                                 "state_dir": self._state_dir,
-                                "trigger": f"cron: {schedule.expression}",
+                                "trigger": str(schedule),
                             },
                             id=job.meta.job_id,
                             name=job.meta.job_id,
@@ -80,7 +80,7 @@ class Scheduler:
             f"registered {len(job_ids_registered)} job{'s' if len(job_ids_registered) != 1 else ''}:\n{'\n'.join(job_ids_registered)}"
         )
 
-    def _execute_event_schedule(self, event: TriggerEvent):
+    def _execute_event_schedule(self, event: TriggerEvent, timeout_override: float | None = None):
         jobs = self._event_scheduled[event]
         if not jobs:
             return
@@ -90,8 +90,14 @@ class Scheduler:
                 pool.submit(wrapped_job, job, self._database, self._state_dir, event.value): job
                 for job in jobs
             }
+
+            if timeout_override is not None:
+                timeout = timeout_override
+            else:
+                timeout = max(job.meta.timeout for job in jobs) + 5
+
             done, not_done = wait(
-                futures.keys(), timeout=max(job.meta.timeout for job in jobs) + 10
+                futures.keys(), timeout
             )
 
             if len(not_done) > 0:
@@ -110,7 +116,7 @@ class Scheduler:
         event = TriggerEvent.NETWORK_UP if network_up else TriggerEvent.NETWORK_DOWN
         self._execute_event_schedule(event)
 
-    def shutdown(self):
+    def shutdown(self, timeout: float):
         if not self._running:
             return
 
@@ -119,6 +125,6 @@ class Scheduler:
         self._scheduler.shutdown(wait=False)
         if len(self._event_scheduled[TriggerEvent.SYSTEM_DOWN]) > 0:
             _logger.info("executing system down jobs...")
-            self._execute_event_schedule(TriggerEvent.SYSTEM_DOWN)
+            self._execute_event_schedule(TriggerEvent.SYSTEM_DOWN, timeout_override=timeout)
         _logger.info("scheduler shutdown complete")
         self._running = False

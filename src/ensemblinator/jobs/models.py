@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -16,17 +17,25 @@ class TriggerEvent(Enum):
     NETWORK_DOWN = "network: down"
 
 
+class Schedule(ABC):
+    @abstractmethod
+    def __str__(self) -> str: ...
+
+
 @dataclass(frozen=True)
-class CronSchedule:
+class CronSchedule(Schedule):
     expression: str
 
+    def __str__(self) -> str:
+        return f"cron: {self.expression}"
+
 
 @dataclass(frozen=True)
-class EventSchedule:
+class EventSchedule(Schedule):
     event: TriggerEvent
 
-
-Schedule = CronSchedule | EventSchedule
+    def __str__(self) -> str:
+        return self.event.value
 
 
 class JobRequirement(Enum):
@@ -44,7 +53,6 @@ class NotificationMeta:
 @dataclass(frozen=True)
 class JobMeta:
     job_id: str
-    name: str
     schedules: list[Schedule]
     timeout: float
     requires: list[JobRequirement]
@@ -55,4 +63,4 @@ class JobMeta:
 class Job:
     meta: JobMeta
     executable: Path
-    expected_hash: str | None
+    expected_hash: str

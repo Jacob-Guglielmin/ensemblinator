@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ensemblinator"
-version = "0.1.0"
+version = "0"
 description = "Job orchestrator with builtin notifications"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,6 +23,10 @@ ensemblinator-tools = "ensemblinator.cli.dispatch:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"ensemblinator.db" = ["sql/*.sql"]
+"ensemblinator.webui" = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

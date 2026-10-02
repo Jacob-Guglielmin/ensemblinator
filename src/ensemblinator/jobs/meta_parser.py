@@ -176,7 +176,7 @@ DIRECTIVES = [
 ]
 
 
-def parse_job_header(path: Path, jobs_dir: Path) -> JobMeta | None:
+def parse_job_header(path: Path) -> JobMeta | None:
     meta = {}
 
     with open(path, encoding="utf-8", errors="replace") as f:
@@ -211,7 +211,7 @@ def parse_job_header(path: Path, jobs_dir: Path) -> JobMeta | None:
     if meta.get("job", None) is None:
         return None
 
-    return _interpret_meta(path.resolve().relative_to(jobs_dir).as_posix(), meta)
+    return _interpret_meta(meta)
 
 
 def _interpret_directives(raw_meta: dict[str, str | list[str]]) -> dict[str, Any]:
@@ -265,7 +265,7 @@ def _interpret_directives(raw_meta: dict[str, str | list[str]]) -> dict[str, Any
     return values
 
 
-def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
+def _interpret_meta(raw_meta: dict) -> JobMeta:
     values = _interpret_directives(raw_meta)
 
     notify_directives_passed = any(k.startswith("notify.") for k in raw_meta)
@@ -302,8 +302,7 @@ def _interpret_meta(job_id: str, raw_meta: dict) -> JobMeta:
         seen_schedules.append(schedule)
 
     meta = JobMeta(
-        job_id=job_id,
-        name=values["job"],
+        job_id=values["job"],
         schedules=values["schedule"],
         timeout=values["timeout"],
         requires=values["requires"],

@@ -33,10 +33,7 @@ def wrapped_job(job: Job, database: Database, state_dir: Path, trigger: str):
         skip_job_run(job.meta, f"unknown error reading job file: {e}", trigger, database)
         return
 
-    if (
-        job.expected_hash is not None
-        and hashlib.sha256(job_content_bytes).hexdigest() != job.expected_hash
-    ):
+    if hashlib.sha256(job_content_bytes).hexdigest() != job.expected_hash:
         skip_job_run(job.meta, "job file has changed on disk", trigger, database)
         return
 
@@ -46,9 +43,14 @@ def wrapped_job(job: Job, database: Database, state_dir: Path, trigger: str):
         return
 
     run_id = database.run_start(job.meta.job_id, trigger)
+    
     exit_code, output, duration = _execute_subprocess(
         job.meta.job_id, job.executable, state_dir, job.meta.timeout, trigger
     )
+
+    if output.strip() == "":
+        output = None
+
     database.run_finish(run_id, "success" if exit_code == 0 else "failure", exit_code, output)
 
     _logger.info(

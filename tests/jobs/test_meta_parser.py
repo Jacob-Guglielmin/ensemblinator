@@ -26,7 +26,7 @@ def parsed_raw_text(tmp_path):
         path = tmp_path / relative_path
         content = content if isinstance(content, list) else [content]
         path.write_text("\n".join(content))
-        return parse_job_header(path, tmp_path)
+        return parse_job_header(path)
 
     return _parse
 
@@ -50,7 +50,7 @@ def parsed(tmp_path):
         path = tmp_path / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("\n".join(lines))
-        return parse_job_header(path, tmp_path)
+        return parse_job_header(path)
 
     return _parse
 
@@ -80,12 +80,6 @@ class TestJobParsing:
     def test_interspersed_lines(self, parsed_raw_text, line):
         assert parsed_raw_text([line, "# @job foo", "# @schedule network: up"]) is not None
         assert parsed_raw_text(["# @schedule network: up", line, "# @job foo"]) is not None
-
-    def test_job_id(self, parsed):
-        assert (
-            parsed(relative_path=Path("./complicated/path/../to/jobfile.sh")).job_id
-            == "complicated/to/jobfile.sh"
-        )
 
 
 class TestDirectiveShape:
@@ -131,7 +125,7 @@ class TestDirectiveParsing:
             parsed({"job": ""})
 
     def test_job_valid(self, parsed):
-        assert parsed({"job": "foo"}).name == "foo"
+        assert parsed({"job": "foo"}).job_id == "foo"
 
     def test_unknown_schedule(self, parsed):
         with pytest.raises(MetaParseError, match="unknown schedule"):

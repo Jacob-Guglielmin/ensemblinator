@@ -87,7 +87,7 @@ class Notifier:
         return data
 
     def _generate_message(
-        self, name: str | None, exit_code: int, output: str, duration: float, is_heartbeat: bool
+        self, name: str | None, exit_code: int, output: str | None, duration: float, is_heartbeat: bool
     ) -> str:
         label = f"{name}: " if name else ""
         if exit_code == 0:
@@ -95,7 +95,7 @@ class Notifier:
         else:
             message = f"{label}Failed (exit code {exit_code}) in {self._format_duration(duration)}"
 
-        if output == "":
+        if output is None:
             message = f"{message} with no output."
         else:
             message = f"{message}."
@@ -180,7 +180,7 @@ class Notifier:
         a ping to @everyone.
         """
         attachment: bytes | None = None
-        if log_text:
+        if log_text is not None:
             if len(log_text) + len(message) <= MESSAGE_BUDGET and "```" not in log_text:
                 message = f"{message}\n```\n{log_text}\n```"
             else:
@@ -216,7 +216,7 @@ class Notifier:
                 attachment=(None if links else attachment),
             )
 
-    def notify_job_complete(self, meta: JobMeta, exit_code: int, output: str, duration: float):
+    def notify_job_complete(self, meta: JobMeta, exit_code: int, output: str | None, duration: float):
         if meta.notify is None:
             return
 
@@ -237,14 +237,16 @@ class Notifier:
         send_error = self._send_error(meta.job_id, exit_code, meta.notify.consecutive_failures)
 
         if (not be_quiet) or send_heartbeat:
-            message = self._generate_message(meta.name, exit_code, output, duration, send_heartbeat)
+            message = self._generate_message(
+                meta.job_id, exit_code, output, duration, send_heartbeat
+            )
             self.notify(meta.notify.channels, message, send_error, output)
 
     def notify_job_skipped(self, meta: JobMeta, reason: str):
         if meta.notify is None:
             return
 
-        message = f"{meta.name + ': ' if meta.name else ''}Skipped: {reason}."
+        message = f"{meta.job_id + ': ' if meta.job_id else ''}Skipped: {reason}."
         self.notify(meta.notify.channels, message, error=True)
 
 
